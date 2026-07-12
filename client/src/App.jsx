@@ -39831,9 +39831,446 @@ function BalanceScaleApp({ onBack }) {
   )
 }
 
+const getTopicName = (id) => {
+  const apps = [
+    { key: 'addition', name: 'Addition' },
+    { key: 'angles', name: 'Angles' },
+    { key: 'basicarith', name: 'Arithmetic' },
+    { key: 'banking', name: 'Banking (RD)' },
+    { key: 'bearings', name: 'Bearings' },
+    { key: 'binomial', name: 'Binomial Theorem' },
+    { key: 'bounds', name: 'Bounds' },
+    { key: 'circmeasure', name: 'Circular Measure' },
+    { key: 'circleth', name: 'Circle Theorems' },
+    { key: 'complex', name: 'Complex Numbers' },
+    { key: 'congruence', name: 'Congruence' },
+    { key: 'conics', name: 'Conic Sections' },
+    { key: 'coordgeom', name: 'Coordinate Geometry' },
+    { key: 'decimals', name: 'Decimals' },
+    { key: 'diff', name: 'Differentiation' },
+    { key: 'diffeq', name: 'Differential Equations' },
+    { key: 'dotprod', name: 'Dot Products' },
+    { key: 'fractionadd', name: 'Fractions' },
+    { key: 'funceval', name: 'Functions' },
+    { key: 'gk', name: 'General Knowledge' },
+    { key: 'gst', name: 'GST' },
+    { key: 'hcflcm', name: 'HCF & LCM' },
+    { key: 'heron', name: "Heron's Formula" },
+    { key: 'indices', name: 'Indices' },
+    { key: 'ineq', name: 'Inequalities' },
+    { key: 'integ', name: 'Integration' },
+    { key: 'invtrig', name: 'Inverse Trigonometry' },
+    { key: 'limits', name: 'Limits' },
+    { key: 'lineareq', name: 'Linear Equations' },
+    { key: 'lineq', name: 'Line Equation' },
+    { key: 'linprog', name: 'Linear Programming' },
+    { key: 'log', name: 'Logarithms' },
+    { key: 'matrix', name: 'Matrices' },
+    { key: 'mensur', name: 'Mensuration' },
+    { key: 'multiply', name: 'Multiplication' },
+    { key: 'bases', name: 'Number Bases' },
+    { key: 'percent', name: 'Percentages' },
+    { key: 'permcomb', name: 'Perm. & Comb.' },
+    { key: 'polyfactor', name: 'Polynomial Factoring' },
+    { key: 'polymul', name: 'Polynomial Multiplication' },
+    { key: 'polygons', name: 'Polygons' },
+    { key: 'primefactor', name: 'Prime Factors' },
+    { key: 'prob', name: 'Probability' },
+    { key: 'profitloss', name: 'Profit & Loss' },
+    { key: 'pythag', name: "Pythagoras' Theorem" },
+    { key: 'quadratic', name: 'Quadratic' },
+    { key: 'qformula', name: 'Quadratic Formula' },
+    { key: 'ratio', name: 'Ratio' },
+    { key: 'remfactor', name: 'Remainder Theorem' },
+    { key: 'rounding', name: 'Rounding' },
+    { key: 'section', name: 'Section Formula' },
+    { key: 'sequences', name: 'Sequences' },
+    { key: 'shares', name: 'Shares & Dividends' },
+    { key: 'sets', name: 'Sets' },
+    { key: 'similarity', name: 'Similarity' },
+    { key: 'squaring', name: 'Squaring' },
+    { key: 'simul', name: 'Simultaneous Equations' },
+    { key: 'sdt', name: 'Speed, Distance, Time' },
+    { key: 'sqrt', name: 'Square Roots' },
+    { key: 'stdform', name: 'Standard Form' },
+    { key: 'stats', name: 'Statistics' },
+    { key: 'surds', name: 'Surds' },
+    { key: 'tatsavit', name: 'Tatsavit' },
+    { key: 'transform', name: 'Transformations' },
+    { key: 'triangles', name: 'Triangles' },
+    { key: 'trig', name: 'Trigonometry' },
+    { key: 'variation', name: 'Variation' },
+    { key: 'vectors', name: 'Vectors' },
+    { key: 'vocab', name: 'Vocabulary' }
+  ];
+  const app = apps.find(a => a.key === id);
+  return app ? app.name : id.toUpperCase();
+};
+
+function ConfettiEffect() {
+  const [pieces, setPieces] = useState([]);
+
+  useEffect(() => {
+    const arr = [];
+    const colors = ['#ffd700', '#ff8c00', '#ff3e3e', '#3b82f6', '#10b981', '#a855f7', '#ec4899'];
+    for (let i = 0; i < 150; i++) {
+      arr.push({
+        id: i,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        xStart: `${Math.random() * 100}vw`,
+        yStart: `-20px`,
+        xEnd: `${Math.random() * 100}vw`,
+        yEnd: `${window.innerHeight + 50}px`,
+        delay: `${Math.random() * 3}s`,
+        duration: `${2.5 + Math.random() * 2}s`
+      });
+    }
+    setPieces(arr);
+  }, []);
+
+  return (
+    <div className="confetti-container">
+      {pieces.map(p => (
+        <div
+          key={p.id}
+          className="confetti-piece"
+          style={{
+            background: p.color,
+            left: p.xStart,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+            '--x-start': p.xStart,
+            '--y-start': p.yStart,
+            '--x-end': p.xEnd,
+            '--y-end': p.yEnd,
+            '--rot-end': `${Math.random() * 1080}deg`
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function RevisionSessionView({ topicId, onBack, onSuccess }) {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [sessionId, setSessionId] = useState('');
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [answers, setAnswers] = useState([]);
+  const [sessionFinished, setSessionFinished] = useState(false);
+  const [submitResult, setSubmitResult] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    startSession();
+  }, [topicId]);
+
+  const startSession = async () => {
+    setLoading(true);
+    setError('');
+    setSessionFinished(false);
+    setSubmitResult(null);
+    setCurrentIndex(0);
+    setUserAnswer('');
+    setAnswers([]);
+
+    try {
+      const res = await fetch(`${API}/api/analytics/revision/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : ''
+        },
+        body: JSON.stringify({ topicId, count: 15 })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to start revision');
+      }
+      const data = await res.json();
+      setSessionId(data.sessionId);
+      setQuestions(data.questions || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnswerSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!userAnswer.trim()) return;
+
+    const currentQ = questions[currentIndex];
+    
+    let isCorrect = false;
+    const cleanUser = userAnswer.trim().toLowerCase().replace(/\s+/g, '');
+    const cleanCorrect = String(currentQ.display || currentQ.answer || '').trim().toLowerCase().replace(/\s+/g, '');
+
+    const userNum = parseFloat(userAnswer);
+    const correctNum = parseFloat(currentQ.display || currentQ.answer);
+    if (!isNaN(userNum) && !isNaN(correctNum)) {
+      isCorrect = Math.abs(userNum - correctNum) < 0.5;
+    } else {
+      isCorrect = cleanUser === cleanCorrect;
+    }
+
+    const nextAnswers = [
+      ...answers,
+      {
+        questionId: currentQ.questionId,
+        userAnswer: userAnswer,
+        isCorrect
+      }
+    ];
+    setAnswers(nextAnswers);
+    setUserAnswer('');
+
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      submitSessionResults(nextAnswers);
+    }
+  };
+
+  const submitSessionResults = async (finalAnswers) => {
+    setSubmitting(true);
+    setSessionFinished(true);
+    try {
+      const res = await fetch(`${API}/api/analytics/revision/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : ''
+        },
+        body: JSON.stringify({ topicId, sessionId, answers: finalAnswers })
+      });
+      if (!res.ok) {
+        throw new Error('Failed to submit revision results');
+      }
+      const data = await res.json();
+      setSubmitResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <p>Loading revision questions...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <h3>Error</h3>
+        <p style={{ color: 'var(--clr-wrong)' }}>{error}</p>
+        <button className="btn-primary" onClick={onBack}>Back to Dashboard</button>
+      </div>
+    );
+  }
+
+  if (sessionFinished) {
+    if (submitting) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          <p>Grading revision session...</p>
+        </div>
+      );
+    }
+
+    const passed = submitResult?.passed;
+    const score = submitResult?.score || 0;
+    const total = submitResult?.total || 10;
+    const percent = submitResult?.percentage || 0;
+    const isGodMode = passed && submitResult?.newRevisionStage >= 3;
+
+    if (isGodMode) {
+      return (
+        <div className="god-mode-card">
+          <ConfettiEffect />
+          <div className="god-mode-badge">God Mode Unlocked ⚡</div>
+          <h2 className="god-mode-title">Mastery Achieved! 🏆</h2>
+          <p className="god-mode-text">
+            Sensational effort! You have fully mastered <strong>{getTopicName(topicId)}</strong> and reached God Mode! Your math powers are officially legendary! 🧠✨
+          </p>
+          <div className="revision-score-percent pass" style={{ color: '#e8864a', fontSize: '2.5rem', textShadow: '0 0 10px rgba(232,134,74,0.3)', margin: '20px 0 30px' }}>
+            Score: {score} / {total} ({percent}%)
+          </div>
+          <div className="revision-card-nav">
+            <button 
+              className="btn-primary" 
+              style={{ 
+                background: 'linear-gradient(135deg, #e8864a, #ff5722)', 
+                color: '#000', 
+                border: 'none', 
+                fontWeight: '700',
+                boxShadow: '0 4px 12px rgba(232,134,74,0.3)'
+              }} 
+              onClick={onSuccess}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="revision-score-summary">
+        {passed ? (
+          <>
+            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🎉</div>
+            <h2 className="revision-score-title" style={{ color: '#5cb87a' }}>Concept Restored!</h2>
+            <p style={{ fontSize: '1.1rem', color: 'var(--clr-text-soft)', marginBottom: '24px' }}>
+              Your retrieval practice was successful. Concept health has reset to 100%.
+            </p>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>❌</div>
+            <h2 className="revision-score-title" style={{ color: '#e05a4a' }}>Revision Failed</h2>
+            <p style={{ fontSize: '1.1rem', color: 'var(--clr-text-soft)', marginBottom: '24px' }}>
+              You need at least 80% correct to unlock this concept.
+            </p>
+          </>
+        )}
+
+        <div className={`revision-score-percent ${passed ? 'pass' : 'fail'}`}>
+          {score} / {total} ({percent}%)
+        </div>
+
+        <div className="revision-card-nav">
+          {passed ? (
+            <button className="btn-primary" onClick={onSuccess}>Done</button>
+          ) : (
+            <>
+              <button className="btn-primary" onClick={startSession}>Retry Revision</button>
+              <button className="btn-secondary" onClick={onBack}>Dashboard</button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const currentQuestion = questions[currentIndex];
+  const progressPercent = Math.round((currentIndex / questions.length) * 100);
+
+  return (
+    <div className="revision-session-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
+      <div className="revision-session-header">
+        <button onClick={onBack} style={{
+          background: 'none', border: 'none', color: 'var(--clr-accent)', cursor: 'pointer',
+          fontFamily: 'var(--font-body)', fontSize: '0.95rem'
+        }}>
+          ← Exit
+        </button>
+        <div className="revision-progress-container">
+          <div className="revision-progress-bar">
+            <div className="revision-progress-fill" style={{ width: `${progressPercent}%` }}></div>
+          </div>
+        </div>
+        <div style={{ fontSize: '0.9rem', color: 'var(--clr-text-soft)', fontWeight: 600 }}>
+          {currentIndex + 1} of {questions.length}
+        </div>
+      </div>
+
+      <div className="question-card" style={{ padding: '24px', background: 'var(--clr-surface)', borderRadius: 'var(--radius)', border: '1.5px solid var(--clr-border)', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <span className="badge" style={{ textTransform: 'capitalize' }}>Revision Mode</span>
+          <span className="badge" style={{ background: 'rgba(232, 134, 74, 0.15)', color: 'var(--clr-accent)' }}>
+            Difficulty: {currentQuestion.difficulty}
+          </span>
+        </div>
+
+        <h3 style={{ fontSize: '1.3rem', margin: '0 0 20px', lineHeight: 1.4, fontFamily: 'var(--font-display)' }}>
+          {currentQuestion.prompt}
+        </h3>
+
+        <form onSubmit={handleAnswerSubmit}>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <input
+              type="text"
+              className="answer-input"
+              value={userAnswer}
+              onChange={e => setUserAnswer(e.target.value)}
+              placeholder="Your answer..."
+              autoFocus
+              style={{
+                flexGrow: 1, padding: '12px', fontSize: '1.1rem', borderRadius: 'var(--radius-sm)',
+                border: '1.5px solid var(--clr-border)', background: 'var(--clr-card)', color: 'var(--clr-text)'
+              }}
+            />
+            <button type="submit" className="btn-primary" style={{ padding: '12px 24px' }}>
+              Submit
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--clr-text-soft)' }}>
+        ⚠️ Hints are disabled in Revision Mode.
+      </div>
+    </div>
+  );
+}
+
 function App() {
-  // Currently selected quiz mode (null = home menu, or key like 'gk', 'addition', etc.)
   const [mode, setMode] = useState(null)
+  
+  // Tracks the target topic ID for dedicated revision mode sessions
+  const [revisionTopic, setRevisionTopic] = useState(null)
+  // Concept Health Mastery states lifted to App scope
+  const [masteryHealth, setMasteryHealth] = useState({})
+  const [loadingHealth, setLoadingHealth] = useState(false)
+  const [pendingPromptSession, setPendingPromptSession] = useState(null)
+
+  const fetchMastery = () => {
+    const token = authGetToken();
+    if (!token) return;
+    setLoadingHealth(true);
+    fetch(`${API}/api/analytics/mastery`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch mastery health');
+        return res.json();
+      })
+      .then(data => {
+        const map = {};
+        data.forEach(item => {
+          map[item.topicId] = item;
+        });
+        setMasteryHealth(map);
+        setLoadingHealth(false);
+      })
+      .catch(err => {
+        console.error('Error fetching mastery health:', err);
+        setLoadingHealth(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchMastery();
+  }, []);
+
+  const handleSelectTopic = (targetMode) => {
+    const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
+    if (overdueConcepts.length > 0) {
+      setPendingPromptSession({ targetMode });
+    } else {
+      setMode(targetMode);
+    }
+  };
   // Tracks if the active practice session should show the Goal Selector UI
   const [isGoalMode, setIsGoalMode] = useState(false)
   const [journeyContext, setJourneyContext] = useState(null)
@@ -41189,6 +41626,64 @@ function App() {
   // Get the component to render (or null if mode not set)
   const ActiveApp = mode && mode !== 'goalpractice' ? modeMap[mode] : null
 
+  if (mode === 'revision') {
+    return (
+      <div className="app-shell">
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="card">
+          <RevisionSessionView
+            topicId={revisionTopic}
+            onBack={() => { setMode(null); fetchMastery(); }}
+            onSuccess={() => { setMode(null); fetchMastery(); }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (pendingPromptSession) {
+    const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
+    return (
+      <div className="app-shell">
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="card">
+          <div className="locked-detail-screen">
+            <div className="locked-detail-icon">
+              <span style={{ fontSize: '3rem' }}>🧠</span>
+            </div>
+            <h2 className="locked-detail-title" style={{ color: 'var(--clr-accent)' }}>Time for a Memory Boost! 🧠✨</h2>
+            <p className="locked-detail-text" style={{ fontSize: '1.08rem', lineHeight: '1.6', margin: '20px 0 28px', color: 'var(--clr-text-soft)' }}>
+              You have {overdueConcepts.length} concept{overdueConcepts.length === 1 ? '' : 's'} that needs a quick warm-up. Spending just a few minutes revising now will lock in your math superpowers! 🚀
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '280px', margin: '0 auto' }}>
+              <button className="locked-action-btn" onClick={() => {
+                if (overdueConcepts.length > 0) {
+                  setRevisionTopic(overdueConcepts[0].topicId);
+                  setMode('revision');
+                }
+                setPendingPromptSession(null);
+              }}>
+                Start Revision
+              </button>
+              
+              <button className="btn-secondary" style={{ padding: '12px 24px', borderRadius: 'var(--radius-sm)' }} onClick={() => {
+                setMode(pendingPromptSession.targetMode);
+                setPendingPromptSession(null);
+              }}>
+                Skip for Today
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const renderContent = () => {
     if (mode === 'learning_journey') {
       return (
@@ -41317,11 +41812,7 @@ function App() {
  * @param {Function} props.onSelect - Callback when user selects a quiz: receives mode key (e.g., 'gk')
  */
 function Home({ onSelect, isGoalSelection = false, onBack }) {
-  const [showAbout, setShowAbout] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [search, setSearch] = useState('')
-
-  // Special featured apps (shown in hamburger menu)
+  // Special featured apps (shown in highlighted first row / hamburger menu)
   const featuredApps = [
     { key: 'randommix', name: 'Random Mix', subtitle: 'Adaptive cross-topic quiz', color: 'featured' },
     { key: 'custom', name: 'Custom Lesson', subtitle: 'Build your own mixed quiz', color: 'featured' },
@@ -41451,10 +41942,8 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
 
   // Grid layout tracking (for responsive display)
   const gridRef = useRef(null)
-  // Number of columns currently displayed (responsive)
   const [cols, setCols] = useState(4)
 
-  // Update grid dimensions on resize (for responsive grid calculation)
   useEffect(() => {
     const updateCols = () => {
       if (!gridRef.current) return
@@ -41467,8 +41956,31 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
     return () => window.removeEventListener('resize', updateCols)
   }, [])
 
-  // Calculate number of rows for display (for grid dimension label at bottom)
   const rows = Math.ceil(displayGridApps.length / (cols || 1))
+
+  const calculateDaysOverdue = (h) => {
+    if (!h.msUntilNextDecay || h.msUntilNextDecay > 0) return 0;
+    const baseline = h.lastRevisedAt || h.completedAt;
+    if (!baseline) return 0;
+    const elapsed = Date.now() - new Date(baseline).getTime();
+    const STAGE_INTERVALS = [
+      48 * 60 * 60 * 1000,
+      72 * 60 * 60 * 1000,
+      96 * 60 * 60 * 1000,
+      7 * 24 * 60 * 60 * 1000
+    ];
+    const stageIdx = Math.min(h.revisionStage || 0, STAGE_INTERVALS.length - 1);
+    const limit = STAGE_INTERVALS[stageIdx];
+    const overdueMs = elapsed - limit;
+    if (overdueMs <= 0) return 0;
+    return Math.floor(overdueMs / (24 * 60 * 60 * 1000));
+  };
+
+  const activeWarnings = Object.values(masteryHealth).filter(h => h.warning && h.conceptHealth > 40);
+  const revisionQueueItems = Object.values(masteryHealth)
+    .filter(h => h.conceptHealth <= 40)
+    .map(h => ({ ...h, daysOverdue: calculateDaysOverdue(h) }))
+    .sort((a, b) => b.daysOverdue - a.daysOverdue);
 
   return (
     <>
@@ -41567,41 +42079,8 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
             </button>
             </div>}
           </div>
+        )}
       </div>
-
-      {showAbout && (
-        <>
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 99999 }} onClick={() => setShowAbout(false)} />
-          <div className="card" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 100000, width: '90%', maxWidth: '400px', padding: '24px', boxShadow: '0 10px 40px rgba(0,0,0,0.8)' }}>
-            <h2 style={{ color: 'var(--clr-accent)', marginTop: 0 }}>About Tenali</h2>
-            <p style={{ lineHeight: 1.6 }}>
-              Tenali is an advanced, adaptive learning platform featuring interactive puzzles in Mathematics, Logic, and General Knowledge.
-            </p>
-            <p style={{ lineHeight: 1.6 }}>
-              Your progress is saved dynamically, allowing the platform to automatically adjust the difficulty of every question to match your skill level!
-            </p>
-            <button className="menu-card blue" style={{ width: '100%', padding: '12px', marginTop: '16px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }} onClick={() => setShowAbout(false)}>
-              <span className="menu-title">Got it!</span>
-            </button>
-          </div>
-        </>
-      )}
-      {!search && !isGoalSelection && (
-        <div className="journey-banner-row">
-          <button className="journey-banner-btn" onClick={() => onSelect('learning_journey')}>
-            <div className="journey-banner-content">
-              <div className="journey-banner-header">
-                <span>⭐</span>
-                <h3 className="journey-banner-title">Guided Learning Journey</h3>
-              </div>
-              <p className="journey-banner-subtitle">
-                Embark on a structured, sequential math learning path with checkpoints.
-              </p>
-            </div>
-            <div className="journey-banner-arrow">➔</div>
-          </button>
-        </div>
-      )}
       <div className="search-bar-row">
         <input
           id="tour-search-bar"
@@ -41613,12 +42092,66 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
         />
       </div>
       <div className="menu-grid" ref={gridRef}>
-        {displayGridApps.map((app) => (
-          <button key={app.key} className={`menu-card ${app.color}`} onClick={() => onSelect(app.key)}>
-            <span className="menu-title">{app.name}</span>
-            <span className="menu-subtitle">{app.subtitle}</span>
-          </button>
-        ))}
+        {displayGridApps.map((app) => {
+          const healthData = masteryHealth[app.key];
+          const healthVal = healthData ? healthData.conceptHealth : null;
+          const healthColor = healthData ? healthData.healthColor : 'green';
+
+          return (
+            <div key={app.key} className="menu-card-wrapper">
+               <button
+                className={`menu-card ${app.color}`}
+                onClick={() => {
+                  if (healthVal !== null && healthVal <= 40) {
+                    onStartRevision(app.key);
+                  } else {
+                    onSelect(app.key);
+                  }
+                }}
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'flex-start', 
+                  minHeight: '130px', 
+                  width: '100%',
+                  border: healthData && healthData.revisionStageLabel === 'Mastery Achieved' ? '2px solid var(--clr-correct, #5cb87a)' : undefined,
+                  boxShadow: healthData && healthData.revisionStageLabel === 'Mastery Achieved' ? '0 0 10px rgba(92,184,122,0.2)' : undefined
+                }}
+              >
+                <span className="menu-title" style={{ fontSize: '1.12rem', fontWeight: '700' }}>{app.name}</span>
+                <span className="menu-subtitle" style={{ fontSize: '0.8rem', textAlign: 'left', marginTop: '4px', marginBottom: '8px' }}>{app.subtitle}</span>
+
+                {healthData ? (
+                  <div style={{ width: '100%', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="health-bar-container">
+                      <div
+                        className={`health-bar health-${healthColor}`}
+                        style={{ width: `${healthVal}%` }}
+                      ></div>
+                    </div>
+                    <div className="health-text-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginTop: '4px' }}>
+                      <span className={`health-percentage ${healthColor}`}>{healthVal}% Health</span>
+                      <span className={`revision-stage-badge ${healthData.revisionStageLabel === 'Mastery Achieved' ? 'mastery-achieved-badge' : ''}`}>{healthData.revisionStageLabel}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ width: '100%', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="health-bar-container" style={{ opacity: 0.35 }}>
+                      <div
+                        className="health-bar"
+                        style={{ width: '0%', background: 'transparent' }}
+                      ></div>
+                    </div>
+                    <div className="health-text-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginTop: '4px' }}>
+                      <span style={{ color: 'var(--clr-text-soft)', opacity: 0.6 }}>Not Mastered</span>
+                      <span className="revision-stage-badge" style={{ opacity: 0.5 }}>Standard</span>
+                    </div>
+                  </div>
+                )}
+              </button>
+            </div>
+          );
+        })}
       </div>
       <div className="grid-dimension">{rows} × {cols}</div>
     </>
