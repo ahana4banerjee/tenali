@@ -42205,7 +42205,66 @@ function App() {
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
       <div className="card">
+<<<<<<< HEAD
         {renderContent()}
+=======
+        {!mode ? (
+          <Home
+            masteryHealth={masteryHealth}
+            loadingHealth={loadingHealth}
+            onStartRevision={(topicId) => {
+              setRevisionTopic(topicId);
+              setMode('revision');
+            }}
+            onSelect={(key) => {
+              if (key === 'goalpractice') {
+                setMode('goalpractice');
+              } else {
+                handleSelectTopic(key);
+                setIsGoalMode(false);
+              }
+            }}
+          />
+        ) : mode === 'goalpractice' ? (
+          <Home
+            isGoalSelection={true}
+            masteryHealth={masteryHealth}
+            loadingHealth={loadingHealth}
+            onStartRevision={(topicId) => {
+              setRevisionTopic(topicId);
+              setMode('revision');
+            }}
+            onBack={() => {
+              setMode(null);
+              setIsGoalMode(false);
+            }}
+            onSelect={(key) => {
+              setMode(key);
+              setIsGoalMode(true);
+            }}
+          />
+        ) : ActiveApp ? (
+          <ActiveApp
+            onBack={() => {
+              if (isGoalMode) {
+                setMode('goalpractice');
+              } else {
+                setMode(null);
+              }
+            }}
+            isGoalMode={isGoalMode}
+          />
+        ) : (
+          <Home onSelect={(key) => {
+            if (key === 'goalpractice') {
+              setMode('goalpractice');
+            } else {
+              setMode(key);
+              setIsGoalMode(false);
+            }
+          }} />
+        )}
+>>>>>>> 6d7620c (feat: wrap the feature functionality within auth parameter to fetch the previous progress)
       </div>
     </div>
   )
@@ -42414,6 +42473,7 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
               onMouseLeave={e => e.target.style.background = 'none'}>
               <strong style={{ color: 'var(--clr-accent)' }}>ℹ️ About Tenali</strong>
             </button>
+<<<<<<< HEAD
             {/* Visual Learning Universe pinned at top of hamburger menu */}
             {[mathLabEntry].map(app => (
               <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
@@ -42449,6 +42509,7 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
                 <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
               </button>
             ))}
+=======
             {menuOpen && <div style={{
               position: 'absolute', top: '100%', right: 0, zIndex: 50,
               background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
@@ -42489,9 +42550,11 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
                   <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
                 </button>
               ))}
+>>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
 
             <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
 
+<<<<<<< HEAD
             <button onClick={() => { setMenuOpen(false); window.location.href = window.location.pathname.replace(/\/$/, '') + '/language'; }} style={{
               display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
               background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
@@ -42501,6 +42564,22 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
               <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
               <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
             </button>
+=======
+              <button 
+                onClick={() => { if (!hasHardLock) { setMenuOpen(false); window.location.href = '/language'; } }} 
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                  background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
+                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
+                  opacity: hasHardLock ? 0.45 : 1
+                }}
+                onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
+                onMouseLeave={e => e.target.style.background = 'none'}
+              >
+                <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
+              </button>
+>>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
             </div>}
           </div>
         )}
