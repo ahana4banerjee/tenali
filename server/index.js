@@ -307,6 +307,306 @@ app.use(async (req, res, next) => {
 
 
 
+// Helper to resolve userId string/username to Mongoose ObjectId string
+async function resolveUserObjectId(userIdOrUsername) {
+  const mongoose = require('mongoose');
+  if (mongoose.Types.ObjectId.isValid(userIdOrUsername)) {
+    return userIdOrUsername;
+  }
+  if (mongoose.connection.readyState !== 1) {
+    return null;
+  }
+  try {
+    const { User } = require('./auth');
+    const user = await User.findOne({ username: String(userIdOrUsername).toLowerCase().trim() });
+    if (user) {
+      return user._id.toString();
+    }
+  } catch (e) {
+    console.error('[AK] resolveUserObjectId failed:', e);
+  }
+  return null;
+}
+
+async function updateMasteryOnAttempt(userId, topicId, isCorrect) {
+  const { ConceptMastery } = require('./lil/models');
+  const { calculateAdaptiveHealth } = require('./lil/decayEngine');
+  let record = await ConceptMastery.findOne({ userId, topicId });
+  if (!record) {
+    record = new ConceptMastery({
+      userId,
+      topicId,
+      isMastered: false,
+      incorrectStreak: 0,
+      revisionStage: 0,
+      graceSessionUsed: false,
+      learningLocked: false,
+      revisionRequired: false
+    });
+  }
+
+  let newlyMastered = false;
+
+  // Track dynamic health and grace session usage before modifying streak
+  if (record.isMastered) {
+    const { health } = calculateAdaptiveHealth(record.lastRevisedAt, record.completedAt, record.revisionStage);
+    if (health <= 40) {
+      const now = new Date();
+      const isSameSession = record.lastAttemptAt && (now - record.lastAttemptAt < 20 * 60 * 1000);
+      if (!isSameSession) {
+        if (!record.graceSessionUsed) {
+          record.graceSessionUsed = true;
+          record.revisionRequired = true;
+        } else {
+          record.learningLocked = true;
+          record.revisionRequired = true;
+        }
+      }
+      record.lastAttemptAt = now;
+    }
+  }
+
+  if (isCorrect) {
+    record.incorrectStreak = 0;
+    // Standard baseline mastery rule: mark completed on correct answer
+    if (!record.isMastered) {
+      record.isMastered = true;
+      newlyMastered = true;
+      record.completedAt = new Date();
+      record.lastRevisedAt = new Date();
+      record.revisionStage = 0;
+      record.graceSessionUsed = false;
+      record.learningLocked = false;
+      record.revisionRequired = false;
+    }
+  } else {
+    record.incorrectStreak += 1;
+    // Regress mastery if 3 consecutive incorrect attempts occur
+    if (record.incorrectStreak >= 3 && record.isMastered) {
+      record.isMastered = false;
+      record.completedAt = null;
+      record.lastRevisedAt = null;
+      record.revisionStage = 0;
+      record.graceSessionUsed = false;
+      record.learningLocked = false;
+      record.revisionRequired = false;
+    }
+  }
+
+  await record.save();
+}
+
+// ─── STANDALONE CONCEPT HEALTH & MASTERY INTERCEPTOR ────────────────────────
+app.use(async (req, res, next) => {
+  if (req.method !== 'POST' || !req.path.includes('-api/check')) {
+    return next();
+  }
+
+  if (req.body && req.body.solve === true) {
+    return next();
+  }
+
+  // Resolve User ID
+  let userId = null;
+  const authHeader = req.get('authorization') || '';
+  const m = /^Bearer\s+(.+)$/i.exec(authHeader);
+  if (m) {
+    try {
+      const JWT_SECRET = process.env.JWT_SECRET || 'tenali-dev-secret-change-me';
+      const jwt = require('jsonwebtoken');
+      const payload = jwt.verify(m[1], JWT_SECRET);
+      userId = await resolveUserObjectId(payload.sub);
+    } catch (_) {}
+  }
+  if (!userId && require('mongoose').connection.readyState === 1) {
+    try {
+      const { User } = require('./auth');
+      const tatsavitUser = await User.findOne({ username: 'tatsavit' });
+      if (tatsavitUser) {
+        userId = tatsavitUser._id.toString();
+      }
+    } catch (_) {}
+  }
+
+  const pathParts = req.path.split('/');
+  const apiName = pathParts[1] || '';
+  const topicId = apiName.replace('-api', '');
+
+  const originalJson = res.json.bind(res);
+  res.json = function (data) {
+    res.json = originalJson;
+
+    if (userId && topicId && require('mongoose').connection.readyState === 1) {
+      const isCorrect = !!data.correct;
+      
+      // Update mastery state
+      updateMasteryOnAttempt(userId, topicId, isCorrect).catch(err => 
+        console.error('[AK Mastery] Update failed:', err)
+      );
+
+      // Log attempt for revision question selection
+      const { Attempt } = require('./lil/models');
+      const attempt = new Attempt({
+        userId,
+        topicId,
+        difficulty: req.query.difficulty || req.body.difficulty || 'easy',
+        userAnswer: req.body.userAnswer ?? req.body.answer ?? '',
+        isCorrect,
+        prompt: req.body.prompt || '',
+        correctAnswer: req.body.correctAnswer ?? req.body.answer ?? data.correctAnswer ?? data.display ?? '',
+        display: req.body.display ?? data.display ?? '',
+        options: req.body.options || null,
+        questionData: req.body
+      });
+      attempt.save().catch(err => 
+        console.error('[AK Interceptor] Attempt log save failed:', err)
+      );
+    }
+
+    return originalJson(data);
+  };
+
+  next();
+});
+
+// ─── STANDALONE GET QUESTION REVISION INTERCEPTOR ────────────────────────────
+app.use(async (req, res, next) => {
+  // Only intercept GET requests to question endpoints when goal is revision
+  if (req.method !== 'GET' || !req.path.includes('-api/question') || req.query.goal !== 'revision') {
+    return next();
+  }
+
+  // Resolve User ID
+  let userId = null;
+  const authHeader = req.get('authorization') || '';
+  const m = /^Bearer\s+(.+)$/i.exec(authHeader);
+  if (m) {
+    try {
+      const JWT_SECRET = process.env.JWT_SECRET || 'tenali-dev-secret-change-me';
+      const jwt = require('jsonwebtoken');
+      const payload = jwt.verify(m[1], JWT_SECRET);
+      userId = await resolveUserObjectId(payload.sub);
+    } catch (_) {}
+  }
+  if (!userId && require('mongoose').connection.readyState === 1) {
+    try {
+      const { User } = require('./auth');
+      const tatsavitUser = await User.findOne({ username: 'tatsavit' });
+      if (tatsavitUser) {
+        userId = tatsavitUser._id.toString();
+      }
+    } catch (_) {}
+  }
+
+  const pathParts = req.path.split('/');
+  const apiName = pathParts[1] || '';
+  const topicId = apiName.replace('-api', '');
+
+  if (userId && topicId && require('mongoose').connection.readyState === 1) {
+    try {
+      const mongoose = require('mongoose');
+      const { Attempt } = require('./lil/models');
+      
+      const unresolved = await Attempt.aggregate([
+        { $match: { 
+            userId: new mongoose.Types.ObjectId(userId), 
+            topicId, 
+            prompt: { $exists: true, $ne: null } 
+          } 
+        },
+        { $sort: { createdAt: -1 } },
+        { $group: {
+            _id: "$prompt",
+            latestAttempt: { $first: "$$ROOT" }
+        } },
+        { $match: { "latestAttempt.isCorrect": false } },
+        { $sort: { "latestAttempt.createdAt": -1 } }
+      ]);
+
+      const lastFailed = unresolved.length > 0 ? unresolved[0].latestAttempt : null;
+
+      if (lastFailed && lastFailed.prompt) {
+        console.log(`[AK GET] Serving revision question from unresolved failed attempt: ${lastFailed._id}`);
+        if (lastFailed.questionData) {
+          const qData = { ...lastFailed.questionData };
+          delete qData._id;
+          return res.json({
+            ...qData,
+            isRevision: true
+          });
+        }
+        return res.json({
+          id: `rev-${lastFailed._id}-${Date.now()}`,
+          difficulty: lastFailed.difficulty || 'easy',
+          prompt: lastFailed.prompt,
+          answer: lastFailed.correctAnswer,
+          display: lastFailed.display || String(lastFailed.correctAnswer),
+          options: lastFailed.options || undefined,
+          isRevision: true
+        });
+      }
+    } catch (err) {
+      console.error('[AK GET] Failed to fetch revision question:', err);
+    }
+  }
+
+  next();
+});
+
+// ─── STANDALONE LEARNING LOCK GATING MIDDLEWARE ─────────────────────────────
+app.use(async (req, res, next) => {
+  const pathParts = req.path.split('/');
+  const apiName = pathParts[1] || '';
+  
+  if (!apiName.endsWith('-api') || req.path.includes('/revision')) {
+    return next();
+  }
+
+  const topicId = apiName.replace('-api', '');
+  if (!topicId) return next();
+
+  // Resolve User ID
+  let userId = null;
+  const authHeader = req.get('authorization') || '';
+  const m = /^Bearer\s+(.+)$/i.exec(authHeader);
+  if (m) {
+    try {
+      const JWT_SECRET = process.env.JWT_SECRET || 'tenali-dev-secret-change-me';
+      const jwt = require('jsonwebtoken');
+      const payload = jwt.verify(m[1], JWT_SECRET);
+      userId = await resolveUserObjectId(payload.sub);
+    } catch (_) {}
+  }
+  if (!userId && require('mongoose').connection.readyState === 1) {
+    try {
+      const { User } = require('./auth');
+      const tatsavitUser = await User.findOne({ username: 'tatsavit' });
+      if (tatsavitUser) {
+        userId = tatsavitUser._id.toString();
+      }
+    } catch (_) {}
+  }
+
+  if (userId && require('mongoose').connection.readyState === 1) {
+    try {
+      const { ConceptMastery } = require('./lil/models');
+      const record = await ConceptMastery.findOne({ userId, topicId });
+      if (record && record.learningLocked) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          learningLocked: true,
+          topicId,
+          reason: 'Concept health has reached 40% and grace session has been used. Complete a Revision Session to unlock.'
+        });
+      }
+    } catch (err) {
+      console.error('[AK Lock Check] Failed:', err);
+    }
+  }
+
+  next();
+});
+
 /**
  * Generate a detailed, educational step-by-step explanation for how to solve the problem.
  * Covers all ~60 puzzle types with contextual teaching.
@@ -9315,6 +9615,187 @@ app.get('/path', (_req, res) => {
 
 app.get('/enhanced', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'enhanced', 'index.html'));
+});
+
+// ─── STANDALONE CONCEPT HEALTH & REVISION ENDPOINTS ──────────────────────────
+const { calculateAdaptiveHealth, getWarningLevel } = require('./lil/decayEngine');
+const RevisionService = require('./lil/revisionService');
+const { ConceptMastery } = require('./lil/models');
+
+app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
+  if (require('mongoose').connection.readyState !== 1) {
+    return res.json([]);
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const masteries = await ConceptMastery.find({ userId, isMastered: true });
+    
+    const enriched = masteries.map(m => {
+      const { health, stageConfig, msUntilNextDecay, estimatedCountdown } = calculateAdaptiveHealth(
+        m.lastRevisedAt,
+        m.completedAt,
+        m.revisionStage
+      );
+      
+      const warning = getWarningLevel(health);
+
+      return {
+        topicId: m.topicId,
+        isMastered: m.isMastered,
+        completedAt: m.completedAt,
+        lastRevisedAt: m.lastRevisedAt,
+        conceptHealth: health,
+        healthColor: health >= 80 ? 'green' : (health >= 50 ? 'yellow' : 'red'),
+        revisionStage: m.revisionStage,
+        revisionStageLabel: m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label,
+        warning: warning ? warning.message : null,
+        learningLocked: m.learningLocked,
+        graceSessionUsed: m.graceSessionUsed,
+        msUntilNextDecay,
+        estimatedCountdown
+      };
+    });
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('Error fetching concept mastery health:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/analytics/learning-lock', auth.requireAuth, async (req, res) => {
+  const { topicId } = req.query;
+  if (!topicId) {
+    return res.status(400).json({ error: 'Missing topicId' });
+  }
+  if (require('mongoose').connection.readyState !== 1) {
+    return res.json({ topicId, learningLocked: false });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+
+    const mastery = await ConceptMastery.findOne({ userId, topicId });
+    if (!mastery) {
+      return res.json({ topicId, learningLocked: false });
+    }
+
+    const { health } = calculateAdaptiveHealth(mastery.lastRevisedAt, mastery.completedAt, mastery.revisionStage);
+
+    res.json({
+      topicId,
+      learningLocked: mastery.learningLocked || false,
+      reason: mastery.learningLocked ? 'Concept health has reached 40%. Grace session has been used. Complete a Revision Session to unlock.' : null,
+      revisionStage: mastery.revisionStage,
+      conceptHealth: health
+    });
+  } catch (err) {
+    console.error('Error checking learning lock:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/analytics/revision/start', auth.requireAuth, async (req, res) => {
+  if (require('mongoose').connection.readyState !== 1) {
+    return res.status(503).json({ error: 'Database offline' });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const { topicId, count } = req.body;
+    if (!topicId) {
+      return res.status(400).json({ error: 'Missing topicId' });
+    }
+
+    const mastery = await ConceptMastery.findOne({ userId, topicId });
+    if (!mastery || !mastery.isMastered) {
+      return res.status(400).json({ error: 'Topic must be mastered before revision' });
+    }
+
+    const questionsCount = count || 15;
+    const questions = await RevisionService.generateRevisionQuestions(userId, topicId, questionsCount);
+
+    res.json({
+      sessionId: `rev_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      topicId,
+      questions,
+      totalQuestions: questions.length,
+      passThreshold: 80,
+      hintsEnabled: false
+    });
+  } catch (err) {
+    console.error('Error starting revision session:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/analytics/revision/submit', auth.requireAuth, async (req, res) => {
+  if (require('mongoose').connection.readyState !== 1) {
+    return res.status(503).json({ error: 'Database offline' });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const { topicId, answers } = req.body;
+    if (!topicId || !Array.isArray(answers)) {
+      return res.status(400).json({ error: 'Missing topicId or answers array' });
+    }
+
+    const mastery = await ConceptMastery.findOne({ userId, topicId });
+    if (!mastery) {
+      return res.status(404).json({ error: 'Concept mastery record not found' });
+    }
+
+    const evalResult = RevisionService.evaluateRevision(answers);
+
+    if (evalResult.passed) {
+      mastery.lastRevisedAt = new Date();
+      mastery.revisionStage += 1;
+      mastery.learningLocked = false;
+      mastery.graceSessionUsed = false;
+      mastery.revisionRequired = false;
+      mastery.lastAttemptAt = null;
+      await mastery.save();
+
+      return res.json({
+        passed: true,
+        score: evalResult.score,
+        total: evalResult.total,
+        percentage: evalResult.percentage,
+        conceptRestored: true,
+        newHealth: 100,
+        newRevisionStage: mastery.revisionStage,
+        learningLocked: false
+      });
+    } else {
+      mastery.learningLocked = true;
+      mastery.revisionRequired = true;
+      await mastery.save();
+
+      return res.json({
+        passed: false,
+        score: evalResult.score,
+        total: evalResult.total,
+        percentage: evalResult.percentage,
+        conceptRestored: false,
+        currentHealth: 40,
+        retryAllowed: true,
+        message: 'You need 80% to restore this concept. Try again!'
+      });
+    }
+  } catch (err) {
+    console.error('Error submitting revision session:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 /**
