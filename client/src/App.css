@@ -3448,3 +3448,380 @@ button:disabled {
 .menu-card-wrapper:hover .card-locked-overlay {
   opacity: 1;
 }
+
+
+/* ── Concept Health Decay Styles ─────────────────────────── */
+.health-bar-container {
+  width: 100%;
+  height: 8px;
+  background: var(--clr-surface);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.health-bar {
+  height: 100%;
+  transition: width 0.4s ease-in-out, background-color 0.4s ease;
+}
+
+.health-green {
+  background: linear-gradient(90deg, #5cb87a, #76c893);
+}
+
+.health-yellow {
+  background: linear-gradient(90deg, #f4b400, #ffca28);
+}
+
+.health-red {
+  background: linear-gradient(90deg, #e05a4a, #ff6b6b);
+}
+
+.health-text-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--clr-text-soft);
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.health-percentage {
+  font-weight: 600;
+}
+
+.health-percentage.green { color: #5cb87a; }
+.health-percentage.yellow { color: #f4b400; }
+.health-percentage.red { color: #e05a4a; }
+
+.revision-stage-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--clr-text-soft);
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+.warning-banners-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.warning-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+  gap: 12px;
+}
+
+.warning-banner.yellow {
+  background: rgba(244, 180, 0, 0.12);
+  border: 1.5px solid rgba(244, 180, 0, 0.35);
+  color: #ffca28;
+}
+
+.warning-banner.red {
+  background: rgba(224, 90, 74, 0.15);
+  border: 1.5px solid rgba(224, 90, 74, 0.4);
+  color: #ff6b6b;
+}
+
+.warning-banner-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: var(--clr-accent);
+  color: #fff;
+  transition: opacity 0.2s;
+}
+
+.warning-banner-btn:hover {
+  opacity: 0.9;
+}
+
+/* Locked Card Overlay */
+.menu-card-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.menu-card.locked {
+  opacity: 0.65;
+  cursor: pointer;
+}
+
+.locked-card-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(224, 90, 74, 0.2);
+  border: 1px solid rgba(224, 90, 74, 0.4);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 10;
+}
+
+.locked-icon-svg {
+  fill: #ff6b6b;
+  width: 14px;
+  height: 14px;
+}
+
+/* Locked State Detail Screen */
+.locked-detail-screen {
+  text-align: center;
+  padding: 40px 24px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.locked-detail-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  background: rgba(224, 90, 74, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.locked-detail-icon svg {
+  fill: #e05a4a;
+  width: 32px;
+  height: 32px;
+}
+
+.locked-detail-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  margin-bottom: 12px;
+}
+
+.locked-detail-text {
+  color: var(--clr-text-soft);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.locked-action-btn {
+  display: inline-block;
+  background: var(--clr-accent);
+  color: #fff;
+  border: none;
+  padding: 12px 32px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  box-shadow: var(--shadow-btn);
+}
+
+.locked-action-btn:hover {
+  transform: translateY(-2px);
+  background: #f0955a;
+}
+
+.locked-action-btn:active {
+  transform: translateY(0);
+}
+
+.locked-cancel-link {
+  display: block;
+  margin-top: 16px;
+  color: var(--clr-text-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.locked-cancel-link:hover {
+  color: var(--clr-text);
+}
+
+/* Revision Quiz UI */
+.revision-session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1.5px solid var(--clr-border);
+  padding-bottom: 12px;
+}
+
+.revision-progress-container {
+  flex-grow: 1;
+  margin: 0 20px;
+}
+
+.revision-progress-bar {
+  height: 8px;
+  background: var(--clr-surface);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.revision-progress-fill {
+  height: 100%;
+  background: var(--clr-accent);
+  transition: width 0.3s ease;
+}
+
+.revision-score-summary {
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.revision-score-title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+
+.revision-score-percent {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 16px 0;
+}
+
+.revision-score-percent.pass { color: #5cb87a; }
+.revision-score-percent.fail { color: #e05a4a; }
+
+.revision-card-nav {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Confetti effect */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  border-radius: 2px;
+  animation: confettiFall 4s ease-out forwards;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translate3d(var(--x-start), var(--y-start), 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--x-end), var(--y-end), 0) scale(0.4) rotate(var(--rot-end));
+    opacity: 0;
+  }
+}
+
+/* God Mode celebration card */
+.god-mode-card {
+  animation: godModePop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  background: linear-gradient(135deg, rgba(30, 15, 5, 0.95), rgba(15, 5, 2, 0.98)) !important;
+  border: 2px solid #e8864a !important;
+  box-shadow: 0 0 30px rgba(232, 134, 74, 0.25), inset 0 0 15px rgba(232, 134, 74, 0.1);
+  padding: 40px 24px;
+  text-align: center;
+  border-radius: var(--radius);
+}
+
+@keyframes godModePop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.god-mode-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #e8864a, #ff5722);
+  color: #000;
+  font-weight: 800;
+  font-size: 0.9rem;
+  padding: 6px 16px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  box-shadow: 0 0 15px rgba(232, 134, 74, 0.5);
+  margin-bottom: 20px;
+  animation: badgeGlow 2s infinite alternate;
+}
+
+@keyframes badgeGlow {
+  0% {
+    box-shadow: 0 0 8px rgba(232, 134, 74, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(232, 134, 74, 0.8);
+  }
+}
+
+.god-mode-title {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: #e8864a;
+  margin-bottom: 16px;
+  text-shadow: 0 0 10px rgba(232, 134, 74, 0.3);
+}
+
+.god-mode-text {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: #fff;
+  max-width: 440px;
+  margin: 0 auto 28px;
+}
+
+/* Mastery achieved badge styling */
+.revision-stage-badge.mastery-achieved-badge {
+  background: linear-gradient(135deg, #e8864a, #ff5722) !important;
+  color: #000 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 8px rgba(232, 134, 74, 0.4) !important;
+}
