@@ -61,3 +61,47 @@ module.exports = {
   ConceptMastery,
   LearningEvent
 };
+const mongoose = require('mongoose');
+
+const ConceptMasterySchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  topicId: { type: String, required: true },
+  isMastered: { type: Boolean, default: false },
+  incorrectStreak: { type: Number, default: 0 },
+  completedAt: { type: Date },
+  lastRevisedAt: { type: Date },
+  revisionStage: { type: Number, default: 0 },
+  graceSessionUsed: { type: Boolean, default: false },
+  learningLocked: { type: Boolean, default: false },
+  revisionRequired: { type: Boolean, default: false },
+  lastAttemptAt: { type: Date }
+});
+
+// Unique compound index on userId and topicId
+ConceptMasterySchema.index({ userId: 1, topicId: 1 }, { unique: true });
+// Sparse index for learningLocked checks
+ConceptMasterySchema.index({ userId: 1, learningLocked: 1 }, { sparse: true });
+
+const AttemptSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  topicId: { type: String, required: true },
+  difficulty: { type: String, default: 'easy' },
+  userAnswer: { type: String, default: '' },
+  isCorrect: { type: Boolean, required: true },
+  prompt: { type: String, default: '' },
+  correctAnswer: { type: String, default: '' },
+  display: { type: String, default: '' },
+  options: { type: mongoose.Schema.Types.Mixed, default: null },
+  questionData: { type: mongoose.Schema.Types.Mixed, default: null },
+  createdAt: { type: Date, default: Date.now }
+});
+
+AttemptSchema.index({ userId: 1, topicId: 1, createdAt: -1 });
+
+const ConceptMastery = mongoose.models.ConceptMastery || mongoose.model('ConceptMastery', ConceptMasterySchema);
+const Attempt = mongoose.models.Attempt || mongoose.model('Attempt', AttemptSchema);
+
+module.exports = {
+  ConceptMastery,
+  Attempt
+};
