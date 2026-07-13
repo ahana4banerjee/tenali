@@ -40259,9 +40259,11 @@ function App() {
       });
   };
 
+  const { user } = useAuth();
+
   useEffect(() => {
     fetchMastery();
-  }, []);
+  }, [user]);
 
   const handleSelectTopic = (targetMode) => {
     const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
@@ -41797,7 +41799,66 @@ function App() {
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
       <div className="card">
+<<<<<<< HEAD
         {renderContent()}
+=======
+        {!mode ? (
+          <Home
+            masteryHealth={masteryHealth}
+            loadingHealth={loadingHealth}
+            onStartRevision={(topicId) => {
+              setRevisionTopic(topicId);
+              setMode('revision');
+            }}
+            onSelect={(key) => {
+              if (key === 'goalpractice') {
+                setMode('goalpractice');
+              } else {
+                handleSelectTopic(key);
+                setIsGoalMode(false);
+              }
+            }}
+          />
+        ) : mode === 'goalpractice' ? (
+          <Home
+            isGoalSelection={true}
+            masteryHealth={masteryHealth}
+            loadingHealth={loadingHealth}
+            onStartRevision={(topicId) => {
+              setRevisionTopic(topicId);
+              setMode('revision');
+            }}
+            onBack={() => {
+              setMode(null);
+              setIsGoalMode(false);
+            }}
+            onSelect={(key) => {
+              setMode(key);
+              setIsGoalMode(true);
+            }}
+          />
+        ) : ActiveApp ? (
+          <ActiveApp
+            onBack={() => {
+              if (isGoalMode) {
+                setMode('goalpractice');
+              } else {
+                setMode(null);
+              }
+            }}
+            isGoalMode={isGoalMode}
+          />
+        ) : (
+          <Home onSelect={(key) => {
+            if (key === 'goalpractice') {
+              setMode('goalpractice');
+            } else {
+              setMode(key);
+              setIsGoalMode(false);
+            }
+          }} />
+        )}
+>>>>>>> 6d7620c (feat: wrap the feature functionality within auth parameter to fetch the previous progress)
       </div>
     </div>
   )
