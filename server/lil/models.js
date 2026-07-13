@@ -4,15 +4,15 @@ const mongoose = require('mongoose');
 const AttemptSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   topicId: { type: String, required: true },
-  difficulty: { type: String, required: true },
-  userAnswer: { type: String, required: true },
+  difficulty: { type: String, default: 'easy' },
+  userAnswer: { type: String, default: '' },
   isCorrect: { type: Boolean, required: true },
   sessionGoal: { type: String, default: 'standard' },
-  prompt: { type: String },
-  correctAnswer: { type: mongoose.Schema.Types.Mixed },
-  display: { type: String },
-  options: { type: mongoose.Schema.Types.Mixed },
-  questionData: { type: mongoose.Schema.Types.Mixed },
+  prompt: { type: String, default: '' },
+  correctAnswer: { type: mongoose.Schema.Types.Mixed, default: '' },
+  display: { type: String, default: '' },
+  options: { type: mongoose.Schema.Types.Mixed, default: null },
+  questionData: { type: mongoose.Schema.Types.Mixed, default: null },
   telemetry: {
     timeSpentMs: { type: Number, default: 0 },
     inputEditsCount: { type: Number, default: 0 },
@@ -25,44 +25,7 @@ const AttemptSchema = new mongoose.Schema({
 // Compound index for user topic timeline queries (like analytics)
 AttemptSchema.index({ userId: 1, topicId: 1, createdAt: -1 });
 
-const Attempt = mongoose.model('Attempt', AttemptSchema);
-
 // Schema for Concept Mastery
-const ConceptMasterySchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  topicId: { type: String, required: true },
-  isMastered: { type: Boolean, default: false },
-  incorrectStreak: { type: Number, default: 0 },
-  completedAt: { type: Date },
-  lastRevisedAt: { type: Date }
-});
-
-// Ensure a single mastery record exists per user per topic
-ConceptMasterySchema.index({ userId: 1, topicId: 1 }, { unique: true });
-
-const ConceptMastery = mongoose.model('ConceptMastery', ConceptMasterySchema);
-
-// Schema for Learning Events
-const LearningEventSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  eventId: { type: String, required: true },
-  eventType: { type: String, required: true },
-  topicId: { type: String },
-  details: { type: mongoose.Schema.Types.Mixed, default: {} },
-  createdAt: { type: Date, default: Date.now }
-});
-
-LearningEventSchema.index({ userId: 1, eventType: 1 });
-
-const LearningEvent = mongoose.model('LearningEvent', LearningEventSchema);
-
-module.exports = {
-  Attempt,
-  ConceptMastery,
-  LearningEvent
-};
-const mongoose = require('mongoose');
-
 const ConceptMasterySchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   topicId: { type: String, required: true },
@@ -77,31 +40,30 @@ const ConceptMasterySchema = new mongoose.Schema({
   lastAttemptAt: { type: Date }
 });
 
-// Unique compound index on userId and topicId
+// Ensure a single mastery record exists per user per topic
 ConceptMasterySchema.index({ userId: 1, topicId: 1 }, { unique: true });
 // Sparse index for learningLocked checks
 ConceptMasterySchema.index({ userId: 1, learningLocked: 1 }, { sparse: true });
 
-const AttemptSchema = new mongoose.Schema({
+// Schema for Learning Events
+const LearningEventSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  topicId: { type: String, required: true },
-  difficulty: { type: String, default: 'easy' },
-  userAnswer: { type: String, default: '' },
-  isCorrect: { type: Boolean, required: true },
-  prompt: { type: String, default: '' },
-  correctAnswer: { type: String, default: '' },
-  display: { type: String, default: '' },
-  options: { type: mongoose.Schema.Types.Mixed, default: null },
-  questionData: { type: mongoose.Schema.Types.Mixed, default: null },
+  eventId: { type: String, required: true },
+  eventType: { type: String, required: true },
+  topicId: { type: String },
+  details: { type: mongoose.Schema.Types.Mixed, default: {} },
   createdAt: { type: Date, default: Date.now }
 });
 
-AttemptSchema.index({ userId: 1, topicId: 1, createdAt: -1 });
+LearningEventSchema.index({ userId: 1, eventType: 1 });
 
-const ConceptMastery = mongoose.models.ConceptMastery || mongoose.model('ConceptMastery', ConceptMasterySchema);
 const Attempt = mongoose.models.Attempt || mongoose.model('Attempt', AttemptSchema);
+const ConceptMastery = mongoose.models.ConceptMastery || mongoose.model('ConceptMastery', ConceptMasterySchema);
+const LearningEvent = mongoose.models.LearningEvent || mongoose.model('LearningEvent', LearningEventSchema);
 
 module.exports = {
+  Attempt,
   ConceptMastery,
-  Attempt
+  LearningEvent
 };
+
