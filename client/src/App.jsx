@@ -40629,12 +40629,20 @@ function App() {
 
   const fetchMastery = () => {
     const token = authGetToken();
-    if (!token) return;
+    if (!token) {
+      setMasteryHealth({});
+      return;
+    }
     setLoadingHealth(true);
     fetch(`${API}/api/analytics/mastery`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => {
+        if (res.status === 401) {
+          authClear();
+          setMasteryHealth({});
+          throw new Error('Unauthorized');
+        }
         if (!res.ok) throw new Error('Failed to fetch mastery health');
         return res.json();
       })
@@ -42021,6 +42029,10 @@ function App() {
   // Get the component to render (or null if mode not set)
   const ActiveApp = mode && mode !== 'goalpractice' ? modeMap[mode] : null
 
+  const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
+  const hardLockedConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 10);
+  const hasHardLock = hardLockedConcepts.length > 0;
+
   if (mode === 'revision') {
     return (
       <div className="app-shell">
@@ -42038,8 +42050,9 @@ function App() {
     );
   }
 
+
+
   if (pendingPromptSession) {
-    const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
     return (
       <div className="app-shell">
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -42466,6 +42479,36 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
 
   const rows = Math.ceil(displayGridApps.length / (cols || 1))
 
+<<<<<<< HEAD
+=======
+  const calculateDaysOverdue = (h) => {
+    if (!h.msUntilNextDecay || h.msUntilNextDecay > 0) return 0;
+    const baseline = h.lastRevisedAt || h.completedAt;
+    if (!baseline) return 0;
+    const elapsed = Date.now() - new Date(baseline).getTime();
+    const STAGE_INTERVALS = [
+      48 * 60 * 60 * 1000,
+      72 * 60 * 60 * 1000,
+      96 * 60 * 60 * 1000,
+      7 * 24 * 60 * 60 * 1000
+    ];
+    const stageIdx = Math.min(h.revisionStage || 0, STAGE_INTERVALS.length - 1);
+    const limit = STAGE_INTERVALS[stageIdx];
+    const overdueMs = elapsed - limit;
+    if (overdueMs <= 0) return 0;
+    return Math.floor(overdueMs / (24 * 60 * 60 * 1000));
+  };
+
+  const hardLockedConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 10);
+  const hasHardLock = hardLockedConcepts.length > 0;
+
+  const activeWarnings = Object.values(masteryHealth).filter(h => h.warning && h.conceptHealth > 40);
+  const revisionQueueItems = Object.values(masteryHealth)
+    .filter(h => h.conceptHealth <= 40)
+    .map(h => ({ ...h, daysOverdue: calculateDaysOverdue(h) }))
+    .sort((a, b) => b.daysOverdue - a.daysOverdue);
+
+>>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
   return (
     <>
       <div style={{ position: 'relative' }}>
@@ -42592,6 +42635,7 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
 
             <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
 
+<<<<<<< HEAD
             <button onClick={() => { setMenuOpen(false); window.location.href = window.location.pathname.replace(/\/$/, '') + '/language'; }} style={{
               display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
               background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
@@ -42601,6 +42645,22 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
               <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
               <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
             </button>
+=======
+              <button 
+                onClick={() => { if (!hasHardLock) { setMenuOpen(false); window.location.href = '/language'; } }} 
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                  background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
+                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
+                  opacity: hasHardLock ? 0.45 : 1
+                }}
+                onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
+                onMouseLeave={e => e.target.style.background = 'none'}
+              >
+                <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
+              </button>
+>>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
             </div>}
           </div>
         )}
@@ -42669,12 +42729,82 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
         />
       </div>
       <div className="menu-grid" ref={gridRef}>
+<<<<<<< HEAD
         {displayGridApps.map((app) => (
           <button key={app.key} className={`menu-card ${app.color}`} onClick={() => onSelect(app.key)}>
             <span className="menu-title">{app.name}</span>
             <span className="menu-subtitle">{app.subtitle}</span>
           </button>
         ))}
+=======
+        {displayGridApps.map((app) => {
+          const healthData = masteryHealth[app.key];
+          const healthVal = healthData ? healthData.conceptHealth : null;
+          const healthColor = healthData ? healthData.healthColor : 'green';
+          const isAppLocked = hasHardLock && !hardLockedConcepts.some(h => h.topicId === app.key);
+
+          return (
+            <div key={app.key} className="menu-card-wrapper">
+               <button
+                className={`menu-card ${app.color} ${isAppLocked ? 'card-disabled' : ''}`}
+                onClick={() => {
+                  if (isAppLocked) return;
+                  if (healthVal !== null && healthVal <= 40) {
+                    onStartRevision(app.key);
+                  } else {
+                    onSelect(app.key);
+                  }
+                }}
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'flex-start', 
+                  minHeight: '130px', 
+                  width: '100%',
+                  border: healthData && healthData.revisionStageLabel === 'Mastery Achieved' ? '2px solid var(--clr-correct, #5cb87a)' : undefined,
+                  boxShadow: healthData && healthData.revisionStageLabel === 'Mastery Achieved' ? '0 0 10px rgba(92,184,122,0.2)' : undefined
+                }}
+              >
+                <span className="menu-title" style={{ fontSize: '1.12rem', fontWeight: '700' }}>{app.name}</span>
+                <span className="menu-subtitle" style={{ fontSize: '0.8rem', textAlign: 'left', marginTop: '4px', marginBottom: '8px' }}>{app.subtitle}</span>
+
+                {healthData ? (
+                  <div style={{ width: '100%', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="health-bar-container">
+                      <div
+                        className={`health-bar health-${healthColor}`}
+                        style={{ width: `${healthVal}%` }}
+                      ></div>
+                    </div>
+                    <div className="health-text-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginTop: '4px' }}>
+                      <span className={`health-percentage ${healthColor}`}>{healthVal}% Health</span>
+                      <span className={`revision-stage-badge ${healthData.revisionStageLabel === 'Mastery Achieved' ? 'mastery-achieved-badge' : ''}`}>{healthData.revisionStageLabel}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ width: '100%', marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="health-bar-container" style={{ opacity: 0.35 }}>
+                      <div
+                        className="health-bar"
+                        style={{ width: '0%', background: 'transparent' }}
+                      ></div>
+                    </div>
+                    <div className="health-text-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginTop: '4px' }}>
+                      <span style={{ color: 'var(--clr-text-soft)', opacity: 0.6 }}>Not Mastered</span>
+                      <span className="revision-stage-badge" style={{ opacity: 0.5 }}>Standard</span>
+                    </div>
+                  </div>
+                )}
+              </button>
+              {isAppLocked && (
+                <div className="card-locked-overlay">
+                  You need to complete the revision first
+                </div>
+              )}
+            </div>
+          );
+        })}
+>>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
       </div>
       <div className="grid-dimension">{rows} × {cols}</div>
     </>

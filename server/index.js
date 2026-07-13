@@ -8641,9 +8641,13 @@ app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
         healthColor: health >= 80 ? 'green' : (health >= 50 ? 'yellow' : 'red'),
         revisionStage: m.revisionStage,
 <<<<<<< HEAD
+<<<<<<< HEAD
         revisionStageLabel: (m.topicId === 'addition' && m.revisionStage >= 3) ? 'Revision 3+' : (m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label),
 =======
         revisionStageLabel: m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label,
+=======
+        revisionStageLabel: (m.topicId === 'addition' && m.revisionStage >= 3) ? 'Revision 3+' : (m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label),
+>>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
         warning: warning ? warning.message : null,
         estimatedCountdown
       };
