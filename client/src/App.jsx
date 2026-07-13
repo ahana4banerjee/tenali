@@ -42287,7 +42287,7 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
               </button>
               {isAppLocked && (
                 <div className="card-locked-overlay">
-                  You need to complete the revision first
+                  Let's power up! Complete the revision first to unlock this topic! 🚀
                 </div>
               )}
             </div>
