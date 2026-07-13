@@ -5,7 +5,7 @@ const DECAY_STAGES = [
   { stage: 3, label: 'Revision 3+',      decayPercent: 1, intervalMs: 7 * 24 * 60 * 60 * 1000 }
 ];
 
-const HEALTH_FLOOR = 40;
+const HEALTH_FLOOR = 0;
 
 function formatCountdown(ms) {
   if (ms <= 0) return '0h';
@@ -18,7 +18,7 @@ function formatCountdown(ms) {
   return `${hours}h`;
 }
 
-function calculateAdaptiveHealth(lastRevisedAt, completedAt, revisionStage = 0) {
+function calculateAdaptiveHealth(lastRevisedAt, completedAt, revisionStage = 0, topicId = '') {
   const baselineTime = lastRevisedAt || completedAt;
   if (!baselineTime) {
     return {
@@ -33,7 +33,7 @@ function calculateAdaptiveHealth(lastRevisedAt, completedAt, revisionStage = 0) 
   const stageConfig = DECAY_STAGES[stageIndex];
 
   // Lock health at 100% for Stage 3+ (Mastery Achieved)
-  if (revisionStage >= 3) {
+  if (revisionStage >= 3 && topicId !== 'addition') {
     return {
       health: 100,
       stageConfig,

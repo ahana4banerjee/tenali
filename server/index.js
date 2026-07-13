@@ -359,14 +359,42 @@ app.use(async (req, res, next) => {
   if (userId && require('mongoose').connection.readyState === 1) {
     try {
       const { ConceptMastery } = require('./lil/models');
-      const record = await ConceptMastery.findOne({ userId, topicId });
-      if (record && record.learningLocked) {
+      const { calculateAdaptiveHealth } = require('./lil/decayEngine');
+
+      // 1. Check if there is ANY topic with health <= 10%
+      const masteries = await ConceptMastery.find({ userId, isMastered: true });
+      let hasHardLock = false;
+      let hardLockedTopic = '';
+      for (const m of masteries) {
+        const { health } = calculateAdaptiveHealth(m.lastRevisedAt, m.completedAt, m.revisionStage);
+        if (health <= 10) {
+          hasHardLock = true;
+          hardLockedTopic = m.topicId;
+          break;
+        }
+      }
+
+      if (hasHardLock) {
         return res.status(403).json({
           error: 'Forbidden',
           learningLocked: true,
-          topicId,
-          reason: 'Concept health has reached 40% and grace session has been used. Complete a Revision Session to unlock.'
+          topicId: hardLockedTopic,
+          reason: `A topic (${hardLockedTopic}) has decayed to 10% health or below. All other topics are locked. You must complete a Revision Session to unlock.`
         });
+      }
+
+      // 2. Check if the current requested topic is locked (health <= 40% and grace session used)
+      const record = await ConceptMastery.findOne({ userId, topicId });
+      if (record && record.isMastered) {
+        const { health } = calculateAdaptiveHealth(record.lastRevisedAt, record.completedAt, record.revisionStage);
+        if (health <= 40 && (record.learningLocked || record.graceSessionUsed)) {
+          return res.status(403).json({
+            error: 'Forbidden',
+            learningLocked: true,
+            topicId,
+            reason: 'Concept health has reached 40% and grace session has been used. Complete a Revision Session to unlock.'
+          });
+        }
       }
     } catch (err) {
       console.error('[AK Lock Check] Failed:', err);
@@ -8906,7 +8934,8 @@ app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
       const { health, stageConfig, msUntilNextDecay, estimatedCountdown } = calculateAdaptiveHealth(
         m.lastRevisedAt,
         m.completedAt,
-        m.revisionStage
+        m.revisionStage,
+        m.topicId
       );
       
       const warning = getWarningLevel(health);
@@ -8919,7 +8948,7 @@ app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
         conceptHealth: health,
         healthColor: health >= 80 ? 'green' : (health >= 50 ? 'yellow' : 'red'),
         revisionStage: m.revisionStage,
-        revisionStageLabel: m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label,
+        revisionStageLabel: (m.topicId === 'addition' && m.revisionStage >= 3) ? 'Revision 3+' : (m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label),
         warning: warning ? warning.message : null,
         learningLocked: m.learningLocked,
         graceSessionUsed: m.graceSessionUsed,
