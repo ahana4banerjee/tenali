@@ -40619,6 +40619,53 @@ function RevisionSessionView({ topicId, onBack, onSuccess }) {
 
 function App() {
   const [mode, setMode] = useState(null)
+  
+  // Tracks the target topic ID for dedicated revision mode sessions
+  const [revisionTopic, setRevisionTopic] = useState(null)
+  // Concept Health Mastery states lifted to App scope
+  const [masteryHealth, setMasteryHealth] = useState({})
+  const [loadingHealth, setLoadingHealth] = useState(false)
+  const [pendingPromptSession, setPendingPromptSession] = useState(null)
+
+  const fetchMastery = () => {
+    const token = authGetToken();
+    if (!token) return;
+    setLoadingHealth(true);
+    fetch(`${API}/api/analytics/mastery`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch mastery health');
+        return res.json();
+      })
+      .then(data => {
+        const map = {};
+        data.forEach(item => {
+          map[item.topicId] = item;
+        });
+        setMasteryHealth(map);
+        setLoadingHealth(false);
+      })
+      .catch(err => {
+        console.error('Error fetching mastery health:', err);
+        setLoadingHealth(false);
+      });
+  };
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    fetchMastery();
+  }, [user]);
+
+  const handleSelectTopic = (targetMode) => {
+    const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
+    if (overdueConcepts.length > 0) {
+      setPendingPromptSession({ targetMode });
+    } else {
+      setMode(targetMode);
+    }
+  };
   // Tracks if the active practice session should show the Goal Selector UI
   const [isGoalMode, setIsGoalMode] = useState(false)
   const [journeyContext, setJourneyContext] = useState(null)
@@ -42205,9 +42252,7 @@ function App() {
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
       <div className="card">
-<<<<<<< HEAD
         {renderContent()}
-=======
         {!mode ? (
           <Home
             masteryHealth={masteryHealth}
@@ -42264,7 +42309,6 @@ function App() {
             }
           }} />
         )}
->>>>>>> 6d7620c (feat: wrap the feature functionality within auth parameter to fetch the previous progress)
       </div>
     </div>
   )
@@ -42473,7 +42517,6 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
               onMouseLeave={e => e.target.style.background = 'none'}>
               <strong style={{ color: 'var(--clr-accent)' }}>ℹ️ About Tenali</strong>
             </button>
-<<<<<<< HEAD
             {/* Visual Learning Universe pinned at top of hamburger menu */}
             {[mathLabEntry].map(app => (
               <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
@@ -42509,7 +42552,6 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
                 <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
               </button>
             ))}
-=======
             {menuOpen && <div style={{
               position: 'absolute', top: '100%', right: 0, zIndex: 50,
               background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
@@ -42550,11 +42592,9 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
                   <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
                 </button>
               ))}
->>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
 
             <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
 
-<<<<<<< HEAD
             <button onClick={() => { setMenuOpen(false); window.location.href = window.location.pathname.replace(/\/$/, '') + '/language'; }} style={{
               display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
               background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
@@ -42564,22 +42604,6 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
               <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
               <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
             </button>
-=======
-              <button 
-                onClick={() => { if (!hasHardLock) { setMenuOpen(false); window.location.href = '/language'; } }} 
-                style={{
-                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-                  background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
-                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
-                  opacity: hasHardLock ? 0.45 : 1
-                }}
-                onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
-                onMouseLeave={e => e.target.style.background = 'none'}
-              >
-                <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
-              </button>
->>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
             </div>}
           </div>
         )}
