@@ -36282,9 +36282,11 @@ function App() {
       });
   };
 
+  const { user } = useAuth();
+
   useEffect(() => {
     fetchMastery();
-  }, []);
+  }, [user]);
 
   const handleSelectTopic = (targetMode) => {
     const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
@@ -36967,17 +36969,31 @@ function App() {
       </button>
       <div className="card">
         {!mode ? (
-          <Home onSelect={(key) => {
-            if (key === 'goalpractice') {
-              setMode('goalpractice');
-            } else {
-              setMode(key);
-              setIsGoalMode(false);
-            }
-          }} />
+          <Home
+            masteryHealth={masteryHealth}
+            loadingHealth={loadingHealth}
+            onStartRevision={(topicId) => {
+              setRevisionTopic(topicId);
+              setMode('revision');
+            }}
+            onSelect={(key) => {
+              if (key === 'goalpractice') {
+                setMode('goalpractice');
+              } else {
+                handleSelectTopic(key);
+                setIsGoalMode(false);
+              }
+            }}
+          />
         ) : mode === 'goalpractice' ? (
           <Home
             isGoalSelection={true}
+            masteryHealth={masteryHealth}
+            loadingHealth={loadingHealth}
+            onStartRevision={(topicId) => {
+              setRevisionTopic(topicId);
+              setMode('revision');
+            }}
             onBack={() => {
               setMode(null);
               setIsGoalMode(false);
