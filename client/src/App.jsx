@@ -42066,7 +42066,7 @@ function App() {
                 Start Revision
               </button>
               
-              <button className="btn-secondary" style={{ padding: '12px 24px', borderRadius: 'var(--radius-sm)' }} onClick={() => {
+              <button className="locked-skip-btn" onClick={() => {
                 setMode(pendingPromptSession.targetMode);
                 setPendingPromptSession(null);
               }}>
