@@ -2886,6 +2886,26 @@ button:disabled {
   transform: translateY(0);
 }
 
+.locked-skip-btn {
+  display: inline-block;
+  background: transparent;
+  color: var(--clr-text-soft);
+  border: 1.5px solid var(--clr-border);
+  padding: 12px 32px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.locked-skip-btn:hover {
+  background: var(--clr-hover);
+  color: var(--clr-text);
+  border-color: var(--clr-text-soft);
+}
+
+
 .locked-cancel-link {
   display: block;
   margin-top: 16px;
