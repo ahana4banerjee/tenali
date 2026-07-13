@@ -42047,9 +42047,6 @@ function App() {
         </button>
         <div className="card">
           <div className="locked-detail-screen">
-            <div className="locked-detail-icon">
-              <span style={{ fontSize: '3rem' }}>🧠</span>
-            </div>
             <h2 className="locked-detail-title" style={{ color: 'var(--clr-accent)' }}>Time for a Memory Boost! 🧠✨</h2>
             <p className="locked-detail-text" style={{ fontSize: '1.08rem', lineHeight: '1.6', margin: '20px 0 28px', color: 'var(--clr-text-soft)' }}>
               You have {overdueConcepts.length} concept{overdueConcepts.length === 1 ? '' : 's'} that needs a quick warm-up. Spending just a few minutes revising now will lock in your math superpowers! 🚀
