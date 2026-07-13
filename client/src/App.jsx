@@ -40236,12 +40236,20 @@ function App() {
 
   const fetchMastery = () => {
     const token = authGetToken();
-    if (!token) return;
+    if (!token) {
+      setMasteryHealth({});
+      return;
+    }
     setLoadingHealth(true);
     fetch(`${API}/api/analytics/mastery`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => {
+        if (res.status === 401) {
+          authClear();
+          setMasteryHealth({});
+          throw new Error('Unauthorized');
+        }
         if (!res.ok) throw new Error('Failed to fetch mastery health');
         return res.json();
       })
@@ -41628,6 +41636,10 @@ function App() {
   // Get the component to render (or null if mode not set)
   const ActiveApp = mode && mode !== 'goalpractice' ? modeMap[mode] : null
 
+  const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
+  const hardLockedConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 10);
+  const hasHardLock = hardLockedConcepts.length > 0;
+
   if (mode === 'revision') {
     return (
       <div className="app-shell">
@@ -41645,8 +41657,9 @@ function App() {
     );
   }
 
+
+
   if (pendingPromptSession) {
-    const overdueConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 40);
     return (
       <div className="app-shell">
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
@@ -42034,6 +42047,9 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
     return Math.floor(overdueMs / (24 * 60 * 60 * 1000));
   };
 
+  const hardLockedConcepts = Object.values(masteryHealth).filter(h => h.conceptHealth <= 10);
+  const hasHardLock = hardLockedConcepts.length > 0;
+
   const activeWarnings = Object.values(masteryHealth).filter(h => h.warning && h.conceptHealth > 40);
   const revisionQueueItems = Object.values(masteryHealth)
     .filter(h => h.conceptHealth <= 40)
@@ -42088,6 +42104,7 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
               onMouseLeave={e => e.target.style.background = 'none'}>
               <strong style={{ color: 'var(--clr-accent)' }}>ℹ️ About Tenali</strong>
             </button>
+<<<<<<< HEAD
             {/* Visual Learning Universe pinned at top of hamburger menu */}
             {[mathLabEntry].map(app => (
               <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
@@ -42123,9 +42140,52 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
                 <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
               </button>
             ))}
+=======
+            {menuOpen && <div style={{
+              position: 'absolute', top: '100%', right: 0, zIndex: 50,
+              background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
+              borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)',
+              padding: '6px 0', minWidth: '200px', overflow: 'hidden'
+            }}>
+              {/* Standalone Goal-Based Practice navigation item at the top of menu */}
+              <button 
+                onClick={() => { if (!hasHardLock) { setMenuOpen(false); onSelect('goalpractice'); } }} 
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                  background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
+                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
+                  opacity: hasHardLock ? 0.45 : 1
+                }}
+                onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
+                onMouseLeave={e => e.target.style.background = 'none'}
+              >
+                <strong style={{ color: 'var(--clr-accent)' }}>🎯 Goal Practice</strong>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Practice with targets & limits</span>
+              </button>
+              <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
+              
+              {featuredApps.map(app => (
+                <button 
+                  key={app.key} 
+                  onClick={() => { if (!hasHardLock) { setMenuOpen(false); onSelect(app.key); } }} 
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                    background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
+                    fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
+                    opacity: hasHardLock ? 0.45 : 1
+                  }}
+                  onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
+                  onMouseLeave={e => e.target.style.background = 'none'}
+                >
+                  <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
+                  <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
+                </button>
+              ))}
+>>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
 
             <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
 
+<<<<<<< HEAD
             <button onClick={() => { setMenuOpen(false); window.location.href = window.location.pathname.replace(/\/$/, '') + '/language'; }} style={{
               display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
               background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
@@ -42135,6 +42195,22 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
               <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
               <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
             </button>
+=======
+              <button 
+                onClick={() => { if (!hasHardLock) { setMenuOpen(false); window.location.href = '/language'; } }} 
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                  background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
+                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
+                  opacity: hasHardLock ? 0.45 : 1
+                }}
+                onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
+                onMouseLeave={e => e.target.style.background = 'none'}
+              >
+                <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
+              </button>
+>>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
             </div>}
           </div>
         )}
@@ -42154,12 +42230,14 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
           const healthData = masteryHealth[app.key];
           const healthVal = healthData ? healthData.conceptHealth : null;
           const healthColor = healthData ? healthData.healthColor : 'green';
+          const isAppLocked = hasHardLock && !hardLockedConcepts.some(h => h.topicId === app.key);
 
           return (
             <div key={app.key} className="menu-card-wrapper">
                <button
-                className={`menu-card ${app.color}`}
+                className={`menu-card ${app.color} ${isAppLocked ? 'card-disabled' : ''}`}
                 onClick={() => {
+                  if (isAppLocked) return;
                   if (healthVal !== null && healthVal <= 40) {
                     onStartRevision(app.key);
                   } else {
@@ -42207,6 +42285,11 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
                   </div>
                 )}
               </button>
+              {isAppLocked && (
+                <div className="card-locked-overlay">
+                  You need to complete the revision first
+                </div>
+              )}
             </div>
           );
         })}

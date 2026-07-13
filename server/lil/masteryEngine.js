@@ -29,7 +29,7 @@ async function update(userId, topicId, isCorrect) {
 
   // Track dynamic health and grace session usage before modifying streak
   if (record.isMastered) {
-    const { health } = calculateAdaptiveHealth(record.lastRevisedAt, record.completedAt, record.revisionStage);
+    const { health } = calculateAdaptiveHealth(record.lastRevisedAt, record.completedAt, record.revisionStage, record.topicId);
     if (health <= 40) {
       const now = new Date();
       const isSameSession = record.lastAttemptAt && (now - record.lastAttemptAt < 20 * 60 * 1000);
