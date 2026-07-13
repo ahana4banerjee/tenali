@@ -25,6 +25,10 @@ const AttemptSchema = new mongoose.Schema({
 // Compound index for user topic timeline queries (like analytics)
 AttemptSchema.index({ userId: 1, topicId: 1, createdAt: -1 });
 
+// Feature AO: two-field compound index for weekly analytics summary queries
+// Supports: find({ userId: X, createdAt: { $gte: T1, $lt: T2 } }) efficiently
+AttemptSchema.index({ userId: 1, createdAt: -1 });
+
 const Attempt = mongoose.model('Attempt', AttemptSchema);
 
 // Schema for Concept Mastery

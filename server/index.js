@@ -131,6 +131,10 @@ const jwt = require('jsonwebtoken');
 const lilProcess = require('./lil/processAttempt');
 const { User } = require('./auth');
 
+// ─── ANALYTICS (Feature AO) — read-only references ───────────────────────────
+const { requireAuth } = require('./auth');    // JWT auth middleware
+const { Attempt } = require('./lil/models'); // Attempt model (read-only for AO)
+
 app.use(async (req, res, next) => {
   // Only intercept POST requests to check endpoints
   if (req.method !== 'POST' || !req.path.includes('-api/check')) {
@@ -1325,8 +1329,100 @@ function loadQuestions() {
 // Load all GK questions at server startup
 const questions = loadQuestions();
 
+// ─── ANALYTICS UTILITY (Feature AO) ─────────────────────────────────────────
+/**
+ * calculateComparisonMetrics
+ *
+ * Pure function — no database calls, no side effects.
+ * Computes accuracy, speed, and hint-usage metrics from two weekly attempt arrays.
+ * Handles all edge cases: empty arrays, missing telemetry, zero denominators.
+ *
+ * Feature AO is completely independent of every other feature.
+ * This function only reads the fields it needs (isCorrect, telemetry,
+ * createdAt). All other attempt fields are ignored.
+ *
+ * @param {Array} thisWeekLogs  - Attempt documents from the past 0–7 days
+ * @param {Array} lastWeekLogs  - Attempt documents from 7–14 days ago
+ * @returns {Object} Structured analytics comparison payload
+ */
+function calculateComparisonMetrics(thisWeekLogs, lastWeekLogs) {
+  // ── Accuracy ──────────────────────────────────────────────────────────────
+  const thisWeekTotal   = thisWeekLogs.length;
+  const lastWeekTotal   = lastWeekLogs.length;
+
+  const thisWeekCorrect = thisWeekLogs.filter(a => a.isCorrect === true).length;
+  const lastWeekCorrect = lastWeekLogs.filter(a => a.isCorrect === true).length;
+
+  const thisWeekAccPct = thisWeekTotal > 0
+    ? parseFloat(((thisWeekCorrect / thisWeekTotal) * 100).toFixed(1))
+    : 0;
+  const lastWeekAccPct = lastWeekTotal > 0
+    ? parseFloat(((lastWeekCorrect / lastWeekTotal) * 100).toFixed(1))
+    : 0;
+
+  // Percentage improvement in accuracy relative to last week.
+  // Guard: if last week accuracy was 0% (no attempts or all wrong), return 0.
+  const accuracyImprovementPct = lastWeekAccPct > 0
+    ? parseFloat((((thisWeekAccPct - lastWeekAccPct) / lastWeekAccPct) * 100).toFixed(1))
+    : 0;
+
+  // ── Speed ─────────────────────────────────────────────────────────────────
+  // Only include attempts that have a valid (>0) timeSpentMs telemetry value.
+  const thisWeekTimes = thisWeekLogs
+    .filter(a => a.telemetry && typeof a.telemetry.timeSpentMs === 'number' && a.telemetry.timeSpentMs > 0)
+    .map(a => a.telemetry.timeSpentMs / 1000); // convert ms → seconds
+
+  const lastWeekTimes = lastWeekLogs
+    .filter(a => a.telemetry && typeof a.telemetry.timeSpentMs === 'number' && a.telemetry.timeSpentMs > 0)
+    .map(a => a.telemetry.timeSpentMs / 1000);
+
+  const thisWeekAvgSec = thisWeekTimes.length > 0
+    ? parseFloat((thisWeekTimes.reduce((s, v) => s + v, 0) / thisWeekTimes.length).toFixed(1))
+    : 0;
+  const lastWeekAvgSec = lastWeekTimes.length > 0
+    ? parseFloat((lastWeekTimes.reduce((s, v) => s + v, 0) / lastWeekTimes.length).toFixed(1))
+    : 0;
+
+  // improvementSec: positive = this week was faster (lower avg time = improvement)
+  // negative = this week was slower
+  const speedImprovementSec = parseFloat((lastWeekAvgSec - thisWeekAvgSec).toFixed(1));
+
+  // ── Hints ─────────────────────────────────────────────────────────────────
+  const thisWeekHints = thisWeekLogs
+    .filter(a => a.telemetry && a.telemetry.hintRequestedImmediately === true).length;
+  const lastWeekHints = lastWeekLogs
+    .filter(a => a.telemetry && a.telemetry.hintRequestedImmediately === true).length;
+
+  // Improvement: reduction in hint usage is positive.
+  // Guard: if no hints were used last week, return 0 (no base to compare).
+  const hintsImprovementPct = lastWeekHints > 0
+    ? parseFloat((((lastWeekHints - thisWeekHints) / lastWeekHints) * 100).toFixed(1))
+    : 0;
+
+  return {
+    accuracy: {
+      thisWeekPercent:    thisWeekAccPct,
+      improvementPercent: accuracyImprovementPct,
+    },
+    speed: {
+      thisWeekAvgSec:  thisWeekAvgSec,
+      improvementSec:  speedImprovementSec,
+    },
+    hints: {
+      thisWeekUsedCount:  thisWeekHints,
+      improvementPercent: hintsImprovementPct,
+    },
+    // Metadata used by the UI (not displayed directly to the student)
+    _meta: {
+      thisWeekAttempts: thisWeekTotal,
+      lastWeekAttempts: lastWeekTotal,
+    }
+  };
+}
+
 /**
  * HEALTH CHECK ENDPOINT
+
  * GET /api/health
  *
  * Returns server status and total question count
@@ -9317,8 +9413,82 @@ app.get('/enhanced', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'enhanced', 'index.html'));
 });
 
+// ─── ANALYTICS SUMMARY (Feature AO) ─────────────────────────────────────────
+/**
+ * GET /api/analytics/summary
+ *
+ * Returns this-week vs. last-week performance comparison for the authenticated user.
+ *
+ * Authentication: requireAuth middleware (auth.js).
+ *   - Missing token  → 401 { error: "missing token" }
+ *   - Invalid/expired → 401 { error: "invalid or expired token" }
+ *
+ * Privacy guarantee: userId is extracted exclusively from the verified JWT payload
+ * (req.user.id). No query-string or body parameter can override it. A user can
+ * only retrieve their own analytics data.
+ *
+ * Feature independence: reads only from the 'attempts' collection. Zero dependency
+ * on Goal-Based Practice, Concept Health Decay, Checkpoints, Frustration Detection,
+ * or any other feature module. Disabling this route has no effect on any other feature.
+ *
+ * Response schema: see implementation_plan.md §6 for full field semantics.
+ */
+app.get('/api/analytics/summary', requireAuth, async (req, res) => {
+  try {
+    // userId comes from the verified JWT — cannot be spoofed via request params
+    const userId = req.user.id;
+
+    // Time boundaries
+    const now         = new Date();
+    const oneWeekAgo  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // Cast userId to ObjectId for Mongoose query.
+    // Falls back to string if the auth system returned a username instead of _id
+    // (can happen with the in-memory fallback path in auth.js).
+    let userIdFilter;
+    try {
+      const mongoose = require('mongoose');
+      userIdFilter = new mongoose.Types.ObjectId(userId);
+    } catch (_castErr) {
+      userIdFilter = userId; // in-memory auth fallback: use username string
+    }
+
+    // Field projection: only fetch the 4 fields AO needs.
+    // Excludes: questionData, prompt, display, options, correctAnswer, userAnswer, etc.
+    const projection = {
+      isCorrect: 1,
+      'telemetry.timeSpentMs': 1,
+      'telemetry.hintRequestedImmediately': 1,
+      createdAt: 1,
+      _id: 0
+    };
+
+    // Both queries run concurrently — halves the sequential wait time.
+    // The compound index { userId: 1, createdAt: -1 } on AttemptSchema covers both.
+    const [thisWeekLogs, lastWeekLogs] = await Promise.all([
+      Attempt.find(
+        { userId: userIdFilter, createdAt: { $gte: oneWeekAgo } },
+        projection
+      ).lean(),
+      Attempt.find(
+        { userId: userIdFilter, createdAt: { $gte: twoWeeksAgo, $lt: oneWeekAgo } },
+        projection
+      ).lean(),
+    ]);
+
+    const comparisonData = calculateComparisonMetrics(thisWeekLogs, lastWeekLogs);
+    res.json(comparisonData);
+
+  } catch (err) {
+    console.error('[AO] /api/analytics/summary error:', err.message || err);
+    res.status(500).json({ error: 'Analytics unavailable. Please try again.' });
+  }
+});
+
 /**
  * CATCH-ALL ROUTE
+
  * ═══════════════════════════════════════════════════════════════════════════
  * Serves the React/Vue SPA index.html for all unmatched routes
  * Enables client-side routing to work properly

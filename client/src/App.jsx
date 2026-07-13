@@ -35854,6 +35854,328 @@ function TenthApp({ onBack }) {
   )
 }
 
+// ─── ANALYTICS DASHBOARD (Feature AO) ────────────────────────────────────────
+/**
+ * AnalyticsDashboard
+ *
+ * Self-contained analytics view. Reads only from GET /api/analytics/summary.
+ * Displays accuracy, average response speed, and hint-usage stats for the
+ * current week, compared against the previous week.
+ *
+ * No dependency on any other feature component or module.
+ * Disabling this component has no effect on the rest of the application.
+ *
+ * @param {Object}   props
+ * @param {Function} props.onBack - Called when user clicks the back button
+ */
+function AnalyticsDashboard({ onBack }) {
+  // ── Component State ────────────────────────────────────────────────────────
+  const [data, setData]       = useState(null)   // API response payload
+  const [loading, setLoading] = useState(true)   // fetch in progress
+  const [error, setError]     = useState(null)   // string error message or null
+
+  // ── Data Fetch ─────────────────────────────────────────────────────────────
+  // Fires once on mount. A cancelled flag prevents setState after unmount.
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchAnalytics() {
+      try {
+        const token = authGetToken()  // reads from localStorage (module-level helper)
+        const res = await fetch(`${API}/api/analytics/summary`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
+
+        if (!res.ok) {
+          if (!cancelled) {
+            if (res.status === 401) {
+              setError('Please log in to view your progress.')
+            } else {
+              setError(`Could not load analytics (HTTP ${res.status}). Try again later.`)
+            }
+            setLoading(false)
+          }
+          return
+        }
+
+        const json = await res.json()
+        if (!cancelled) {
+          setData(json)
+          setLoading(false)
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError('Network error. Check your connection and try again.')
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchAnalytics()
+    return () => { cancelled = true }
+  }, [])
+
+  // ── Loading State ──────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--clr-text-soft)' }}>
+        <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📊</div>
+        <p style={{ fontSize: '1.05rem' }}>Loading your progress…</p>
+      </div>
+    )
+  }
+
+  // ── Error State ────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <div className="header-row">
+          <button className="back-button" onClick={onBack}>← Home</button>
+        </div>
+        <div style={{ fontSize: '2.5rem', marginBottom: 12, marginTop: 24 }}>⚠️</div>
+        <p style={{ color: 'var(--clr-wrong, #f85149)', marginBottom: 20, fontSize: '1rem' }}>{error}</p>
+      </div>
+    )
+  }
+
+  // ── Empty State ────────────────────────────────────────────────────────────
+  // data is present but no attempts found in either of the two weeks
+  const hasData = data && (data._meta.thisWeekAttempts > 0 || data._meta.lastWeekAttempts > 0)
+  if (!hasData) {
+    return (
+      <div style={{ padding: '1rem' }}>
+        <div className="header-row">
+          <button className="back-button" onClick={onBack}>← Home</button>
+        </div>
+        <h1>My Progress</h1>
+        <p style={{ color: 'var(--clr-text-soft)', marginTop: 20, lineHeight: 1.6 }}>
+          No quiz attempts found for the past two weeks.
+          Start practising and come back to see your growth!
+        </p>
+      </div>
+    )
+  }
+
+  // ── Formatting helpers ─────────────────────────────────────────────────────
+  function fmtPct(val) {
+    if (val === 0) return '→ No change'
+    const sign = val > 0 ? '+' : ''
+    return `${sign}${val.toFixed(1)}%`
+  }
+
+  function fmtSpeedDelta(val) {
+    if (val === 0) return '→ No change'
+    return val > 0 ? `${val.toFixed(1)}s faster` : `${Math.abs(val).toFixed(1)}s slower`
+  }
+
+  // Returns a CSS colour string: green for positive improvement, red for regression
+  function impColor(val, lowerIsBetter) {
+    if (val === 0) return 'var(--clr-text-soft)'
+    const better = lowerIsBetter ? val < 0 : val > 0
+    return better ? 'var(--clr-correct, #26de81)' : 'var(--clr-wrong, #f85149)'
+  }
+
+  // ── Inner component: SVG trend line ───────────────────────────────────────
+  // Plots two data points (lastWeek → thisWeek) on a small 120×48 SVG canvas.
+  // Slope direction gives an immediate visual cue of improvement vs regression.
+  function SVGTrendLine({ lastVal, thisVal, higherIsBetter }) {
+    const W = 120, H = 48, PAD = 10
+    const minV  = Math.min(lastVal, thisVal)
+    const maxV  = Math.max(lastVal, thisVal)
+    const range = (maxV - minV) || 1  // guard: prevent zero range
+
+    function toY(v) {
+      const norm = (v - minV) / range
+      // SVG Y is inverted: top = low Y value.
+      // higherIsBetter: higher value maps to top (lower Y).
+      return higherIsBetter
+        ? PAD + (1 - norm) * (H - 2 * PAD)
+        : PAD + norm * (H - 2 * PAD)
+    }
+
+    const x1 = PAD, x2 = W - PAD
+    const y1 = toY(lastVal), y2 = toY(thisVal)
+    const improved  = higherIsBetter ? thisVal >= lastVal : thisVal <= lastVal
+    const noChange  = lastVal === thisVal
+    const lineColor = noChange
+      ? 'var(--clr-text-soft)'
+      : improved ? 'var(--clr-correct, #26de81)' : 'var(--clr-wrong, #f85149)'
+
+    return (
+      <svg width={W} height={H} aria-hidden="true"
+        style={{ display: 'block', margin: '10px auto 0', overflow: 'visible' }}>
+        <rect width={W} height={H} rx={6}
+          fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.07)" strokeWidth={1} />
+        {/* Trend line */}
+        <line x1={x1} y1={y1} x2={x2} y2={y2}
+          stroke={lineColor} strokeWidth={2.5} strokeLinecap="round" />
+        {/* Last-week dot (smaller, muted) */}
+        <circle cx={x1} cy={y1} r={3.5} fill="var(--clr-text-soft)" />
+        {/* This-week dot (larger, coloured) */}
+        <circle cx={x2} cy={y2} r={5} fill={lineColor} />
+        {/* Period labels */}
+        <text x={x1} y={H + 1} fontSize={8}
+          fill="var(--clr-text-soft)" textAnchor="middle" dominantBaseline="hanging">last</text>
+        <text x={x2} y={H + 1} fontSize={8}
+          fill="var(--clr-text-soft)" textAnchor="middle" dominantBaseline="hanging">this</text>
+      </svg>
+    )
+  }
+
+  // ── Inner component: single metric card ───────────────────────────────────
+  function MetricCard({ icon, title, mainValue, impLabel, impColor: color, children }) {
+    return (
+      <div style={{
+        flex: '1 1 190px',
+        background: 'var(--clr-surface, #1c1c1f)',
+        border: '1px solid var(--clr-border, #333)',
+        borderRadius: 14,
+        padding: '18px 20px 14px',
+        minWidth: 180,
+        textAlign: 'center',
+        boxSizing: 'border-box',
+      }}>
+        <div style={{ fontSize: '1.8rem', marginBottom: 6 }}>{icon}</div>
+        <div style={{
+          fontSize: '0.72rem',
+          color: 'var(--clr-text-soft)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          marginBottom: 4,
+        }}>{title}</div>
+        <div style={{
+          fontSize: '2.1rem',
+          fontWeight: 700,
+          color: 'var(--clr-text)',
+          lineHeight: 1.1,
+        }}>{mainValue}</div>
+        <div style={{
+          fontSize: '0.82rem',
+          color: color,
+          marginTop: 7,
+          fontWeight: 600,
+          minHeight: '1.2em',
+        }}>{impLabel}</div>
+        {children}
+      </div>
+    )
+  }
+
+  // ── Main Render ────────────────────────────────────────────────────────────
+  const { accuracy, speed, hints, _meta } = data
+
+  // Reconstruct last-week values from this-week + improvement delta
+  // (the API returns only the current week's absolute value and the delta)
+  const lastWeekAccPct = accuracy.thisWeekPercent > 0 && accuracy.improvementPercent !== 0
+    ? parseFloat((accuracy.thisWeekPercent / (1 + accuracy.improvementPercent / 100)).toFixed(1))
+    : accuracy.thisWeekPercent
+
+  const lastWeekAvgSec = speed.thisWeekAvgSec > 0
+    ? parseFloat((speed.thisWeekAvgSec + speed.improvementSec).toFixed(1))
+    : 0
+
+  const lastWeekHints = hints.thisWeekUsedCount > 0 && hints.improvementPercent !== 0
+    ? Math.round(hints.thisWeekUsedCount / (1 - hints.improvementPercent / 100))
+    : hints.thisWeekUsedCount
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="header-row">
+        <button className="back-button" onClick={onBack}>← Home</button>
+      </div>
+      <h1>My Progress</h1>
+      <p className="subtitle" style={{ marginBottom: 28 }}>
+        {_meta.thisWeekAttempts > 0
+          ? `This week vs. last week — based on ${_meta.thisWeekAttempts} attempt${_meta.thisWeekAttempts !== 1 ? 's' : ''} this week.`
+          : 'No attempts this week yet — stats below reflect last week only.'}
+      </p>
+
+      {/* Three metric cards */}
+      <div style={{
+        display: 'flex',
+        gap: 16,
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        marginTop: 8,
+      }}>
+
+        {/* Accuracy */}
+        <MetricCard
+          icon="🎯"
+          title="Accuracy"
+          mainValue={`${accuracy.thisWeekPercent.toFixed(1)}%`}
+          impLabel={fmtPct(accuracy.improvementPercent)}
+          impColor={impColor(accuracy.improvementPercent, false)}
+        >
+          <SVGTrendLine
+            lastVal={lastWeekAccPct}
+            thisVal={accuracy.thisWeekPercent}
+            higherIsBetter={true}
+          />
+        </MetricCard>
+
+        {/* Speed */}
+        <MetricCard
+          icon="⚡"
+          title="Avg. Speed"
+          mainValue={speed.thisWeekAvgSec > 0 ? `${speed.thisWeekAvgSec}s` : '—'}
+          impLabel={_meta.lastWeekAttempts > 0 ? fmtSpeedDelta(speed.improvementSec) : 'No prior data'}
+          impColor={impColor(speed.improvementSec, true)}
+        >
+          <SVGTrendLine
+            lastVal={lastWeekAvgSec > 0 ? lastWeekAvgSec : speed.thisWeekAvgSec}
+            thisVal={speed.thisWeekAvgSec}
+            higherIsBetter={false}
+          />
+        </MetricCard>
+
+        {/* Hints */}
+        <MetricCard
+          icon="💡"
+          title="Hints Used"
+          mainValue={String(hints.thisWeekUsedCount)}
+          impLabel={fmtPct(hints.improvementPercent)}
+          impColor={impColor(hints.improvementPercent, false)}
+        >
+          <SVGTrendLine
+            lastVal={lastWeekHints}
+            thisVal={hints.thisWeekUsedCount}
+            higherIsBetter={false}
+          />
+        </MetricCard>
+
+      </div>
+
+      {/* Attempt counts footer */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 24,
+        marginTop: 28,
+        fontSize: '0.8rem',
+        color: 'var(--clr-text-soft)',
+        opacity: 0.8,
+      }}>
+        <span>This week: <strong>{_meta.thisWeekAttempts}</strong> attempt{_meta.thisWeekAttempts !== 1 ? 's' : ''}</span>
+        <span>Last week: <strong>{_meta.lastWeekAttempts}</strong> attempt{_meta.lastWeekAttempts !== 1 ? 's' : ''}</span>
+      </div>
+
+      {/* Privacy disclaimer */}
+      <p style={{
+        fontSize: '0.72rem',
+        color: 'var(--clr-text-soft)',
+        textAlign: 'center',
+        marginTop: 20,
+        opacity: 0.6,
+        lineHeight: 1.5,
+      }}>
+        Only your own attempts are shown. No comparisons with other students.
+      </p>
+    </div>
+  )
+}
+
 function App() {
   // Currently selected quiz mode (null = home menu, or key like 'gk', 'addition', etc.)
   const [mode, setMode] = useState(null)
@@ -36460,6 +36782,7 @@ function App() {
     lineqgym: LinEqGymApp,         // LinearEquations-Gym — solve linear equations (MCQ)
     indicesgym: IndicesGymApp,     // Indices-Gym — index laws (MCQ)
     polygym: PolyGymApp,           // Polynomials Gym — arithmetic → monomial algebra (MCQ)
+    analytics: AnalyticsDashboard, // Feature AO: Self-Progress Analytics Dashboard
   }
 
   // Get the component to render (or null if mode not set)
@@ -36532,6 +36855,7 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
     { key: 'randommix', name: 'Random Mix', subtitle: 'Adaptive cross-topic quiz', color: 'featured' },
     { key: 'custom', name: 'Custom Lesson', subtitle: 'Build your own mixed quiz', color: 'featured' },
     { key: 'gym', name: 'Gym', subtitle: 'Adaptive workout across all 7 gym puzzles', color: 'featured' },
+    { key: 'analytics', name: 'My Progress', subtitle: 'View your weekly performance stats', color: 'featured' },
   ]
 
   // All regular quiz apps sorted alphabetically by name
