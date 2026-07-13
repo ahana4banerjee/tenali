@@ -32,6 +32,16 @@ function calculateAdaptiveHealth(lastRevisedAt, completedAt, revisionStage = 0) 
   const stageIndex = Math.min(revisionStage, DECAY_STAGES.length - 1);
   const stageConfig = DECAY_STAGES[stageIndex];
 
+  // Lock health at 100% for Stage 3+ (Mastery Achieved)
+  if (revisionStage >= 3) {
+    return {
+      health: 100,
+      stageConfig,
+      msUntilNextDecay: 0,
+      estimatedCountdown: 'Never'
+    };
+  }
+
   const elapsedMs = Date.now() - new Date(baselineTime).getTime();
   const fullIntervals = Math.floor(elapsedMs / stageConfig.intervalMs);
   const health = Math.max(HEALTH_FLOOR, 100 - (fullIntervals * stageConfig.decayPercent));
