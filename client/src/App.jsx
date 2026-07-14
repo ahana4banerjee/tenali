@@ -41854,19 +41854,61 @@ function App() {
       return journeyContext ? <AuthGate>{element}</AuthGate> : element;
     }
 
+  if (mode === 'revision') {
     return (
-      <Home
-        onSelect={(key) => {
-          if (key === 'goalpractice') {
-            setMode('goalpractice');
-          } else {
-            setMode(key);
-            setIsGoalMode(false);
-          }
-        }}
-      />
+      <div className="app-shell">
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="card">
+          <RevisionSessionView
+            topicId={revisionTopic}
+            onBack={() => { setMode(null); fetchMastery(); }}
+            onSuccess={() => { setMode(null); fetchMastery(); }}
+          />
+        </div>
+      </div>
     );
-  };
+  }
+
+
+
+  if (pendingPromptSession) {
+    return (
+      <div className="app-shell">
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="card">
+          <div className="locked-detail-screen">
+            <h2 className="locked-detail-title" style={{ color: 'var(--clr-accent)' }}>Time for a Memory Boost! 🧠✨</h2>
+            <p className="locked-detail-text" style={{ fontSize: '1.08rem', lineHeight: '1.6', margin: '20px 0 28px', color: 'var(--clr-text-soft)' }}>
+              You have {overdueConcepts.length} concept{overdueConcepts.length === 1 ? '' : 's'} that needs a quick warm-up. Spending just a few minutes revising now will lock in your math superpowers! 🚀
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%', maxWidth: '280px', margin: '0 auto' }}>
+              <button className="locked-action-btn" onClick={() => {
+                if (overdueConcepts.length > 0) {
+                  setRevisionTopic(overdueConcepts[0].topicId);
+                  setMode('revision');
+                }
+                setPendingPromptSession(null);
+              }}>
+                Start Revision
+              </button>
+              
+              <button className="locked-skip-btn" onClick={() => {
+                setMode(pendingPromptSession.targetMode);
+                setPendingPromptSession(null);
+              }}>
+                Skip for Today
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-shell">
@@ -42102,7 +42144,10 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
   const rows = Math.ceil(displayGridApps.length / (cols || 1))
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
   const calculateDaysOverdue = (h) => {
     if (!h.msUntilNextDecay || h.msUntilNextDecay > 0) return 0;
     const baseline = h.lastRevisedAt || h.completedAt;
@@ -42130,7 +42175,10 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
     .map(h => ({ ...h, daysOverdue: calculateDaysOverdue(h) }))
     .sort((a, b) => b.daysOverdue - a.daysOverdue);
 
+<<<<<<< HEAD
 >>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
+=======
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
   return (
     <>
       <div style={{ position: 'relative' }}>
@@ -42154,65 +42202,34 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
             </p>
           </div>
         </div>
-        {/* Hamburger menu — top right */}
-        <div ref={menuRef} style={{ position: 'absolute', top: '8px', right: '0' }}>
-          <button onClick={() => setMenuOpen(o => !o)} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-            display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center'
-          }} aria-label="Menu">
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(45deg) translate(4.5px, 4.5px)' : 'none' }} />
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'opacity 0.2s', opacity: menuOpen ? 0 : 1 }} />
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(-45deg) translate(4.5px, -4.5px)' : 'none' }} />
-          </button>
-          {menuOpen && <div style={{
-            position: 'absolute', top: '100%', right: 0, zIndex: 50,
-            background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
-            borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)',
-            padding: '6px 0', minWidth: '200px', overflow: 'hidden'
-          }}>
-            <button onClick={() => { setMenuOpen(false); setShowAbout(true) }} style={{
-              display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-              fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
-              borderBottom: '1px solid var(--clr-border)'
-            }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
-              onMouseLeave={e => e.target.style.background = 'none'}>
-              <strong style={{ color: 'var(--clr-accent)' }}>ℹ️ About Tenali</strong>
+        {/* Hamburger menu — top right — hidden in goal selection screen */}
+        {!isGoalSelection && (
+          <div ref={menuRef} style={{ position: 'absolute', top: '8px', right: '0' }}>
+            <button onClick={() => setMenuOpen(o => !o)} style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
+              display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center'
+            }} aria-label="Menu">
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(45deg) translate(4.5px, 4.5px)' : 'none' }} />
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'opacity 0.2s', opacity: menuOpen ? 0 : 1 }} />
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(-45deg) translate(4.5px, -4.5px)' : 'none' }} />
             </button>
-            {/* Visual Learning Universe pinned at top of hamburger menu */}
-            {[mathLabEntry].map(app => (
-              <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
-                display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-                fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
-              }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
-                onMouseLeave={e => e.target.style.background = 'none'}>
-                <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
-              </button>
-            ))}
-            <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
-
-            <button onClick={() => { setMenuOpen(false); onSelect('goalpractice') }} style={{
-              display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-              fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
-            }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
-               onMouseLeave={e => e.target.style.background = 'none'}>
-              <strong style={{ color: 'var(--clr-accent)' }}>🎯 Goal Practice</strong>
-              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Practice with targets & limits</span>
-            </button>
-
-            {featuredApps.map(app => (
-              <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
+            {menuOpen && <div style={{
+              position: 'absolute', top: '100%', right: 0, zIndex: 50,
+              background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
+              borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)',
+              padding: '6px 0', minWidth: '200px', overflow: 'hidden'
+            }}>
+              {/* Standalone Goal-Based Practice navigation item at the top of menu */}
+              <button onClick={() => { setMenuOpen(false); onSelect('goalpractice') }} style={{
                 display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
                 background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
                 fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
               }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
                  onMouseLeave={e => e.target.style.background = 'none'}>
-                <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
+                <strong style={{ color: 'var(--clr-accent)' }}>🎯 Goal Practice</strong>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Practice with targets & limits</span>
               </button>
+<<<<<<< HEAD
             ))}
             {menuOpen && <div style={{
               position: 'absolute', top: '100%', right: 0, zIndex: 50,
@@ -42250,6 +42267,17 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
                   onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
                   onMouseLeave={e => e.target.style.background = 'none'}
                 >
+=======
+              <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
+              
+              {featuredApps.map(app => (
+                <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
+                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
+                }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+                   onMouseLeave={e => e.target.style.background = 'none'}>
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
                   <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
                   <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
                 </button>
@@ -42257,6 +42285,7 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
 
             <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
 
+<<<<<<< HEAD
 <<<<<<< HEAD
             <button onClick={() => { setMenuOpen(false); window.location.href = window.location.pathname.replace(/\/$/, '') + '/language'; }} style={{
               display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
@@ -42283,6 +42312,17 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
                 <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
               </button>
 >>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
+=======
+              <button onClick={() => { setMenuOpen(false); window.location.href = '/language'; }} style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
+                fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
+              }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+                 onMouseLeave={e => e.target.style.background = 'none'}>
+                <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
+              </button>
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
             </div>}
           </div>
         )}
@@ -42352,6 +42392,7 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
       </div>
       <div className="menu-grid" ref={gridRef}>
 <<<<<<< HEAD
+<<<<<<< HEAD
         {displayGridApps.map((app) => (
           <button key={app.key} className={`menu-card ${app.color}`} onClick={() => onSelect(app.key)}>
             <span className="menu-title">{app.name}</span>
@@ -42359,6 +42400,8 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
           </button>
         ))}
 =======
+=======
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
         {displayGridApps.map((app) => {
           const healthData = masteryHealth[app.key];
           const healthVal = healthData ? healthData.conceptHealth : null;
@@ -42426,7 +42469,10 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
             </div>
           );
         })}
+<<<<<<< HEAD
 >>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
+=======
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
       </div>
       <div className="grid-dimension">{rows} × {cols}</div>
     </>

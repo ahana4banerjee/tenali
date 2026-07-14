@@ -310,6 +310,213 @@ async function resolveUserObjectId(userIdOrUsername) {
   if (mongoose.connection.readyState !== 1) {
     return null;
   }
+  try {
+    const { User } = require('./auth');
+    const user = await User.findOne({ username: String(userIdOrUsername).toLowerCase().trim() });
+    if (user) {
+      return user._id.toString();
+    }
+  } catch (e) {
+    console.error('[AK] resolveUserObjectId failed:', e);
+  }
+  return null;
+}
+
+// ─── STANDALONE LEARNING LOCK GATING MIDDLEWARE ─────────────────────────────
+app.use(async (req, res, next) => {
+  const pathParts = req.path.split('/');
+  const apiName = pathParts[1] || '';
+  
+  if (!apiName.endsWith('-api') || req.path.includes('/revision')) {
+    return next();
+  }
+
+  const topicId = apiName.replace('-api', '');
+  if (!topicId) return next();
+
+  // Resolve User ID
+  let userId = null;
+  const authHeader = req.get('authorization') || '';
+  const m = /^Bearer\s+(.+)$/i.exec(authHeader);
+  if (m) {
+    try {
+      const JWT_SECRET = process.env.JWT_SECRET || 'tenali-dev-secret-change-me';
+      const jwt = require('jsonwebtoken');
+      const payload = jwt.verify(m[1], JWT_SECRET);
+      userId = await resolveUserObjectId(payload.sub);
+    } catch (_) {}
+  }
+  if (!userId && require('mongoose').connection.readyState === 1) {
+    try {
+      const { User } = require('./auth');
+      const tatsavitUser = await User.findOne({ username: 'tatsavit' });
+      if (tatsavitUser) {
+        userId = tatsavitUser._id.toString();
+      }
+    } catch (_) {}
+  }
+
+  if (userId && require('mongoose').connection.readyState === 1) {
+    try {
+      const { ConceptMastery } = require('./lil/models');
+      const { calculateAdaptiveHealth } = require('./lil/decayEngine');
+
+      // 1. Check if there is ANY topic with health <= 10%
+      const masteries = await ConceptMastery.find({ userId, isMastered: true });
+      let hasHardLock = false;
+      let hardLockedTopic = '';
+      for (const m of masteries) {
+        const { health } = calculateAdaptiveHealth(m.lastRevisedAt, m.completedAt, m.revisionStage);
+        if (health <= 10) {
+          hasHardLock = true;
+          hardLockedTopic = m.topicId;
+          break;
+        }
+      }
+
+      if (hasHardLock) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          learningLocked: true,
+          topicId: hardLockedTopic,
+          reason: `A topic (${hardLockedTopic}) has decayed to 10% health or below. All other topics are locked. You must complete a Revision Session to unlock.`
+        });
+      }
+
+      // 2. Check if the current requested topic is locked (health <= 40% and grace session used)
+      const record = await ConceptMastery.findOne({ userId, topicId });
+      if (record && record.isMastered) {
+        const { health } = calculateAdaptiveHealth(record.lastRevisedAt, record.completedAt, record.revisionStage);
+        if (health <= 40 && (record.learningLocked || record.graceSessionUsed)) {
+          return res.status(403).json({
+            error: 'Forbidden',
+            learningLocked: true,
+            topicId,
+            reason: 'Concept health has reached 40% and grace session has been used. Complete a Revision Session to unlock.'
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[AK Lock Check] Failed:', err);
+    }
+  }
+
+  next();
+});
+
+// Helper to resolve userId string/username to Mongoose ObjectId string
+async function resolveUserObjectId(userIdOrUsername) {
+  const mongoose = require('mongoose');
+  if (mongoose.Types.ObjectId.isValid(userIdOrUsername)) {
+    return userIdOrUsername;
+  }
+  if (mongoose.connection.readyState !== 1) {
+    return null;
+  }
+  try {
+    const { User } = require('./auth');
+    const user = await User.findOne({ username: String(userIdOrUsername).toLowerCase().trim() });
+    if (user) {
+      return user._id.toString();
+    }
+  } catch (e) {
+    console.error('[AK] resolveUserObjectId failed:', e);
+  }
+  return null;
+}
+
+// ─── STANDALONE LEARNING LOCK GATING MIDDLEWARE ─────────────────────────────
+app.use(async (req, res, next) => {
+  const pathParts = req.path.split('/');
+  const apiName = pathParts[1] || '';
+  
+  if (!apiName.endsWith('-api') || req.path.includes('/revision')) {
+    return next();
+  }
+
+  const topicId = apiName.replace('-api', '');
+  if (!topicId) return next();
+
+  // Resolve User ID
+  let userId = null;
+  const authHeader = req.get('authorization') || '';
+  const m = /^Bearer\s+(.+)$/i.exec(authHeader);
+  if (m) {
+    try {
+      const JWT_SECRET = process.env.JWT_SECRET || 'tenali-dev-secret-change-me';
+      const jwt = require('jsonwebtoken');
+      const payload = jwt.verify(m[1], JWT_SECRET);
+      userId = await resolveUserObjectId(payload.sub);
+    } catch (_) {}
+  }
+  if (!userId && require('mongoose').connection.readyState === 1) {
+    try {
+      const { User } = require('./auth');
+      const tatsavitUser = await User.findOne({ username: 'tatsavit' });
+      if (tatsavitUser) {
+        userId = tatsavitUser._id.toString();
+      }
+    } catch (_) {}
+  }
+
+  if (userId && require('mongoose').connection.readyState === 1) {
+    try {
+      const { ConceptMastery } = require('./lil/models');
+      const { calculateAdaptiveHealth } = require('./lil/decayEngine');
+
+      // 1. Check if there is ANY topic with health <= 10%
+      const masteries = await ConceptMastery.find({ userId, isMastered: true });
+      let hasHardLock = false;
+      let hardLockedTopic = '';
+      for (const m of masteries) {
+        const { health } = calculateAdaptiveHealth(m.lastRevisedAt, m.completedAt, m.revisionStage);
+        if (health <= 10) {
+          hasHardLock = true;
+          hardLockedTopic = m.topicId;
+          break;
+        }
+      }
+
+      if (hasHardLock) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          learningLocked: true,
+          topicId: hardLockedTopic,
+          reason: `A topic (${hardLockedTopic}) has decayed to 10% health or below. All other topics are locked. You must complete a Revision Session to unlock.`
+        });
+      }
+
+      // 2. Check if the current requested topic is locked (health <= 40% and grace session used)
+      const record = await ConceptMastery.findOne({ userId, topicId });
+      if (record && record.isMastered) {
+        const { health } = calculateAdaptiveHealth(record.lastRevisedAt, record.completedAt, record.revisionStage);
+        if (health <= 40 && (record.learningLocked || record.graceSessionUsed)) {
+          return res.status(403).json({
+            error: 'Forbidden',
+            learningLocked: true,
+            topicId,
+            reason: 'Concept health has reached 40% and grace session has been used. Complete a Revision Session to unlock.'
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[AK Lock Check] Failed:', err);
+    }
+  }
+
+  next();
+});
+const { generateExplanation } = require('./explanations');
+
+// Helper to resolve userId string/username to Mongoose ObjectId string
+async function resolveUserObjectId(userIdOrUsername) {
+  const mongoose = require('mongoose');
+  if (mongoose.Types.ObjectId.isValid(userIdOrUsername)) {
+    return userIdOrUsername;
+  }
+  if (mongoose.connection.readyState !== 1) {
+    return null;
+  }
  * Verify if the user's answer to an addition problem is correct
  *
  * Request Body:
@@ -8606,6 +8813,7 @@ app.get('/enhanced', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'enhanced', 'index.html'));
 });
 
+<<<<<<< HEAD
 
 // ─── STANDALONE CONCEPT HEALTH & REVISION ENDPOINTS ──────────────────────────
 const { calculateAdaptiveHealth, getWarningLevel } = require('./lil/decayEngine');
@@ -8861,54 +9069,19 @@ app.get('/linearalgebra-api/question', (req, res) => {
   const fm = (m) => `[${m[0][0]},${m[0][1]};${m[1][0]},${m[1][1]}]`;
   const rnd2 = (x) => Math.round(x * 100) / 100;
   let q;
+=======
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
 
-  const easyGens = [
-    () => { const u=[ri(-9,9),ri(-9,9)],v=[ri(-9,9),ri(-9,9)],r=[u[0]+v[0],u[1]+v[1]]; return {type:'vec_add',answerType:'vector',prompt:`Find u + v where u = ${fv(...u)} and v = ${fv(...v)}`,answer:fv(...r),display:fv(...r),data:{u,v}}; },
-    () => { const u=[ri(-9,9),ri(-9,9)],v=[ri(-9,9),ri(-9,9)],r=[u[0]-v[0],u[1]-v[1]]; return {type:'vec_sub',answerType:'vector',prompt:`Find u − v where u = ${fv(...u)} and v = ${fv(...v)}`,answer:fv(...r),display:fv(...r),data:{u,v}}; },
-    () => { let k=ri(-5,5); if(k===0)k=2; const v=[ri(-9,9),ri(-9,9)],r=[k*v[0],k*v[1]]; return {type:'vec_scale',answerType:'vector',prompt:`Find ${k}v where v = ${fv(...v)}`,answer:fv(...r),display:fv(...r),data:{k,v}}; },
-    () => { const v=[ri(-9,9),ri(-9,9)],r=[-v[0],-v[1]]; return {type:'vec_neg',answerType:'vector',prompt:`Find −v where v = ${fv(...v)}`,answer:fv(...r),display:fv(...r),data:{v}}; },
-    () => { const v=[ri(1,9),ri(1,9)],m=rnd2(Math.sqrt(v[0]*v[0]+v[1]*v[1])); return {type:'vec_mag',answerType:'scalar',prompt:`Find |v| where v = ${fv(...v)} (round to 2 d.p.)`,answer:String(m),display:String(m),data:{v}}; },
-    () => { const u=[ri(-9,9),ri(-9,9)],v=[ri(-9,9),ri(-9,9)],d=u[0]*v[0]+u[1]*v[1]; return {type:'vec_dot',answerType:'scalar',prompt:`Find u · v where u = ${fv(...u)} and v = ${fv(...v)}`,answer:String(d),display:String(d),data:{u,v}}; },
-    () => { const A=[[ri(-9,9),ri(-9,9)],[ri(-9,9),ri(-9,9)]],B=[[ri(-9,9),ri(-9,9)],[ri(-9,9),ri(-9,9)]],R=[[A[0][0]+B[0][0],A[0][1]+B[0][1]],[A[1][0]+B[1][0],A[1][1]+B[1][1]]]; return {type:'mat_add',answerType:'matrix',prompt:`Find A + B where A = ${fm(A)} and B = ${fm(B)}`,answer:fm(R),display:fm(R),data:{A,B}}; },
-    () => { let k=ri(-5,5); if(k===0)k=2; const A=[[ri(-9,9),ri(-9,9)],[ri(-9,9),ri(-9,9)]],R=[[k*A[0][0],k*A[0][1]],[k*A[1][0],k*A[1][1]]]; return {type:'mat_scale',answerType:'matrix',prompt:`Find ${k}A where A = ${fm(A)}`,answer:fm(R),display:fm(R),data:{k,A}}; },
-    () => { const A=[[ri(-9,9),ri(-9,9)],[ri(-9,9),ri(-9,9)]],det=A[0][0]*A[1][1]-A[0][1]*A[1][0]; return {type:'mat_det2',answerType:'scalar',prompt:`Find det(A) where A = ${fm(A)}`,answer:String(det),display:String(det),data:{A}}; },
-    () => { const A=[[ri(-9,9),ri(-9,9)],[ri(-9,9),ri(-9,9)]],R=[[A[0][0],A[1][0]],[A[0][1],A[1][1]]]; return {type:'mat_transpose',answerType:'matrix',prompt:`Find Aᵀ where A = ${fm(A)}`,answer:fm(R),display:fm(R),data:{A}}; },
-    () => { const A=[ri(-9,9),ri(-9,9)],B=[ri(-9,9),ri(-9,9)],r=[B[0]-A[0],B[1]-A[1]]; return {type:'vec_points',answerType:'vector',prompt:`Find vector AB where A = ${fv(...A)} and B = ${fv(...B)}`,answer:fv(...r),display:fv(...r),data:{A,B}}; },
-  ];
+// ─── STANDALONE CONCEPT HEALTH & REVISION ENDPOINTS ──────────────────────────
+const { calculateAdaptiveHealth, getWarningLevel } = require('./lil/decayEngine');
+const RevisionService = require('./lil/revisionService');
+const { ConceptMastery } = require('./lil/models');
 
-  const mediumGens = [
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]],B=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]],R=[[A[0][0]*B[0][0]+A[0][1]*B[1][0],A[0][0]*B[0][1]+A[0][1]*B[1][1]],[A[1][0]*B[0][0]+A[1][1]*B[1][0],A[1][0]*B[0][1]+A[1][1]*B[1][1]]]; return {type:'mat_mul2',answerType:'matrix',prompt:`Find AB where A = ${fm(A)} and B = ${fm(B)}`,answer:fm(R),display:fm(R),data:{A,B}}; },
-    () => { const x=ri(-5,5),y=ri(-5,5); const a1=ri(1,5),b1=ri(1,5),c1=a1*x+b1*y; let a2,b2,c2; do { a2=ri(1,5); b2=ri(1,5); } while(a1*b2===a2*b1); c2=a2*x+b2*y; return {type:'solve_2x2',answerType:'scalar',prompt:`Solve: ${a1}x + ${b1}y = ${c1} and ${a2}x + ${b2}y = ${c2}. Find x.`,answer:String(x),display:String(x),data:{a1,b1,c1,a2,b2,c2,x,y}}; },
-    () => { const x=ri(-5,5),y=ri(-5,5); const a1=ri(1,5),b1=ri(1,5),c1=a1*x+b1*y; let a2,b2,c2; do { a2=ri(1,5); b2=ri(1,5); } while(a1*b2===a2*b1); c2=a2*x+b2*y; return {type:'solve_2x2_y',answerType:'scalar',prompt:`Solve: ${a1}x + ${b1}y = ${c1} and ${a2}x + ${b2}y = ${c2}. Find y.`,answer:String(y),display:String(y),data:{a1,b1,c1,a2,b2,c2,x,y}}; },
-    () => { const A=[[ri(-9,9),ri(-9,9)],[ri(-9,9),ri(-9,9)]],t=A[0][0]+A[1][1]; return {type:'mat_trace',answerType:'scalar',prompt:`Find tr(A) where A = ${fm(A)}`,answer:String(t),display:String(t),data:{A}}; },
-    () => { const u=[ri(-9,9),ri(-9,9)],v=[ri(-9,9),ri(-9,9)],c=u[0]*v[1]-u[1]*v[0]; return {type:'vec_cross',answerType:'scalar',prompt:`Find u × v where u = ${fv(...u)} and v = ${fv(...v)} (2D cross product: u₁v₂ − u₂v₁)`,answer:String(c),display:String(c),data:{u,v}}; },
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]],v=[ri(-5,5),ri(-5,5)],r=[A[0][0]*v[0]+A[0][1]*v[1],A[1][0]*v[0]+A[1][1]*v[1]]; return {type:'mat_vec',answerType:'vector',prompt:`Find Av where A = ${fm(A)} and v = ${fv(...v)}`,answer:fv(...r),display:fv(...r),data:{A,v}}; },
-    () => { const u=[ri(1,9),ri(1,9)],v=[ri(1,9),ri(1,9)]; const dot=u[0]*v[0]+u[1]*v[1]; const magU=Math.sqrt(u[0]*u[0]+u[1]*u[1]),magV=Math.sqrt(v[0]*v[0]+v[1]*v[1]); const cosA=Math.max(-1,Math.min(1,dot/(magU*magV))); const angle=Math.round(Math.acos(cosA)*180/Math.PI); return {type:'vec_angle',answerType:'scalar',prompt:`Find the angle (nearest degree) between u = ${fv(...u)} and v = ${fv(...v)}`,answer:String(angle),display:String(angle)+'°',data:{u,v}}; },
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]]; const det=A[0][0]*A[1][1]-A[0][1]*A[1][0]; const rank=(det!==0)?2:((A[0][0]!==0||A[0][1]!==0||A[1][0]!==0||A[1][1]!==0)?1:0); return {type:'mat_rank',answerType:'scalar',prompt:`Find rank(A) where A = ${fm(A)}`,answer:String(rank),display:String(rank),data:{A}}; },
-    () => { const u=[ri(1,9),ri(1,9)],v=[ri(1,9),ri(1,9)]; const dot=u[0]*v[0]+u[1]*v[1]; const magV=Math.sqrt(v[0]*v[0]+v[1]*v[1]); const proj=rnd2(dot/magV); return {type:'vec_proj',answerType:'scalar',prompt:`Find the scalar projection of u onto v where u = ${fv(...u)} and v = ${fv(...v)} (round to 2 d.p.)`,answer:String(proj),display:String(proj),data:{u,v}}; },
-    () => { let v=[ri(1,9),ri(1,9)]; if(Math.random()<0.5)v[0]=-v[0]; if(Math.random()<0.5)v[1]=-v[1]; const mag=Math.sqrt(v[0]*v[0]+v[1]*v[1]); const u1=rnd2(v[0]/mag); return {type:'vec_unit',answerType:'scalar',prompt:`Find the x-component of the unit vector in the direction of v = ${fv(...v)} (round to 2 d.p.)`,answer:String(u1),display:String(u1),data:{v}}; },
-  ];
-
-  const hardGens = [
-    () => { const M=Array.from({length:3},()=>[ri(-5,5),ri(-5,5),ri(-5,5)]); const det=M[0][0]*(M[1][1]*M[2][2]-M[1][2]*M[2][1])-M[0][1]*(M[1][0]*M[2][2]-M[1][2]*M[2][0])+M[0][2]*(M[1][0]*M[2][1]-M[1][1]*M[2][0]); const fmt=(m)=>`[${m[0].join(',')};${m[1].join(',')};${m[2].join(',')}]`; return {type:'det_3x3',answerType:'scalar',prompt:`Find det(A) where A = ${fmt(M)}`,answer:String(det),display:String(det),data:{M}}; },
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]]; const t=A[0][0]+A[1][1]; return {type:'eigen_sum',answerType:'scalar',prompt:`Find the sum of eigenvalues of A = ${fm(A)} (hint: sum = trace)`,answer:String(t),display:String(t),data:{A}}; },
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]]; const det=A[0][0]*A[1][1]-A[0][1]*A[1][0]; return {type:'eigen_prod',answerType:'scalar',prompt:`Find the product of eigenvalues of A = ${fm(A)} (hint: product = det)`,answer:String(det),display:String(det),data:{A}}; },
-    () => { const x=ri(-3,3),y=ri(-3,3),z=ri(-3,3); const a1=ri(1,3),b1=ri(1,3),c1=ri(1,3),d1=a1*x+b1*y+c1*z; const a2=ri(1,3),b2=ri(1,3),c2=ri(1,3),d2=a2*x+b2*y+c2*z; const a3=ri(1,3),b3=ri(1,3),c3=ri(1,3),d3=a3*x+b3*y+c3*z; return {type:'solve_3x3',answerType:'scalar',prompt:`Solve: ${a1}x+${b1}y+${c1}z=${d1}, ${a2}x+${b2}y+${c2}z=${d2}, ${a3}x+${b3}y+${c3}z=${d3}. Find x.`,answer:String(x),display:String(x),data:{a1,b1,c1,d1,a2,b2,c2,d2,a3,b3,c3,d3,x,y,z}}; },
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]]; const det=A[0][0]*A[1][1]-A[0][1]*A[1][0]; return {type:'char_const',answerType:'scalar',prompt:`Find the constant term of the characteristic polynomial of A = ${fm(A)} (hint: = det(A))`,answer:String(det),display:String(det),data:{A}}; },
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]]; const A2=[[A[0][0]*A[0][0]+A[0][1]*A[1][0],A[0][0]*A[0][1]+A[0][1]*A[1][1]],[A[1][0]*A[0][0]+A[1][1]*A[1][0],A[1][0]*A[0][1]+A[1][1]*A[1][1]]]; const t=A2[0][0]+A2[1][1]; return {type:'mat_sq_trace',answerType:'scalar',prompt:`Find tr(A²) where A = ${fm(A)}`,answer:String(t),display:String(t),data:{A}}; },
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]]; const det=A[0][0]*A[1][1]-A[0][1]*A[1][0]; return {type:'adj_det',answerType:'scalar',prompt:`Find det(adj(A)) where A = ${fm(A)} (hint: for 2x2, det(adj(A)) = det(A))`,answer:String(det),display:String(det),data:{A}}; },
-    () => { const A=[[ri(-5,5),ri(-5,5)],[ri(-5,5),ri(-5,5)]]; const det=A[0][0]*A[1][1]-A[0][1]*A[1][0]; const rank=(det!==0)?2:((A[0][0]!==0||A[0][1]!==0||A[1][0]!==0||A[1][1]!==0)?1:0); const nullity=2-rank; return {type:'nullity',answerType:'scalar',prompt:`Find the nullity of A = ${fm(A)}`,answer:String(nullity),display:String(nullity),data:{A}}; },
-    () => { const x=ri(-5,5),y=ri(-5,5); const a1=ri(1,5),b1=ri(1,5),c1=a1*x+b1*y; let a2,b2,c2; do{a2=ri(1,5);b2=ri(1,5);}while(a1*b2===a2*b1); c2=a2*x+b2*y; const detD=a1*b2-a2*b1; const detDx=c1*b2-c2*b1; const xC=rnd2(detDx/detD); return {type:'cramer_x',answerType:'scalar',prompt:`Use Cramer's rule to find x: ${a1}x+${b1}y=${c1}, ${a2}x+${b2}y=${c2}`,answer:String(xC),display:String(xC),data:{a1,b1,c1,a2,b2,c2}}; },
-    () => { const A=[[ri(-3,3),ri(-3,3)],[ri(-3,3),ri(-3,3)]]; const A2=[[A[0][0]*A[0][0]+A[0][1]*A[1][0],A[0][0]*A[0][1]+A[0][1]*A[1][1]],[A[1][0]*A[0][0]+A[1][1]*A[1][0],A[1][0]*A[0][1]+A[1][1]*A[1][1]]]; const A3=[[A2[0][0]*A[0][0]+A2[0][1]*A[1][0],A2[0][0]*A[0][1]+A2[0][1]*A[1][1]],[A2[1][0]*A[0][0]+A2[1][1]*A[1][0],A2[1][0]*A[0][1]+A2[1][1]*A[1][1]]]; const t=A3[0][0]+A3[1][1]; return {type:'mat_cube_trace',answerType:'scalar',prompt:`Find tr(A3) where A = ${fm(A)}`,answer:String(t),display:String(t),data:{A}}; },
-  ];
-
-  if (difficulty === 'easy') {
-    q = pick(easyGens)();
-  } else if (difficulty === 'medium') {
-    q = pick(mediumGens)();
-  } else {
-    q = pick(hardGens)();
+app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
+  if (require('mongoose').connection.readyState !== 1) {
+    return res.json([]);
   }
+<<<<<<< HEAD
   res.json({ id, difficulty, ...q });
 });
 
@@ -10142,79 +10315,122 @@ app.get('/la-mission-quiz-api/question', (req, res) => {
   const seenStr = req.query.seen || '';
   const seen = new Set(seenStr.split(',').filter(Boolean));
   const id = Date.now();
+=======
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
   try {
-    const q = MQ(missionId, difficulty, seen);
-    res.json({ id, missionId, difficulty, ...q });
-  } catch (e) {
-    console.error('Mission quiz question error:', e);
-    res.status(500).json({ error: 'Failed to generate question' });
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const masteries = await ConceptMastery.find({ userId, isMastered: true });
+    const enriched = masteries.map(m => {
+      const { health, stageConfig, msUntilNextDecay, estimatedCountdown } = calculateAdaptiveHealth(
+        m.lastRevisedAt,
+        m.completedAt,
+        m.topicId === 'addition' ? 'addition' : m.revisionStage
+      );
+      
+      const warning = getWarningLevel(health);
+
+      return {
+        topicId: m.topicId,
+        isMastered: m.isMastered,
+        completedAt: m.completedAt,
+        lastRevisedAt: m.lastRevisedAt,
+        conceptHealth: health,
+        healthColor: health >= 80 ? 'green' : (health >= 50 ? 'yellow' : 'red'),
+        revisionStage: m.revisionStage,
+        revisionStageLabel: m.revisionStage >= 3 && m.topicId !== 'addition' ? 'Mastery Achieved' : stageConfig.label,
+        warning: warning ? warning.message : null,
+        learningLocked: m.learningLocked,
+        graceSessionUsed: m.graceSessionUsed,
+        msUntilNextDecay,
+        estimatedCountdown
+      };
+    });
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('Error fetching concept mastery health:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-app.post('/la-mission-quiz-api/check', (req, res) => {
-  const { answer: expected, answerType, type, data, prompt } = req.body;
-  const raw = (req.body.userAnswer || '').trim();
-  const norm = (s) => s.replace(/\s+/g, '').replace(/\u2212/g, '-').toLowerCase();
-  const n = norm(raw);
-  let correct = false;
+app.get('/api/analytics/learning-lock', auth.requireAuth, async (req, res) => {
+  const { topicId } = req.query;
+  if (!topicId) {
+    return res.status(400).json({ error: 'Missing topicId' });
+  }
+  if (require('mongoose').connection.readyState !== 1) {
+    return res.json({ topicId, learningLocked: false });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const mastery = await ConceptMastery.findOne({ userId, topicId });
+    if (!mastery) {
+      return res.json({ topicId, learningLocked: false });
+    }
+    res.json({ topicId, learningLocked: !!mastery.learningLocked });
+  } catch (err) {
+    console.error('Error checking learning lock:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
-  if (answerType === 'scalar') {
-    const parseNum = (s) => {
-      s = s.replace(/\s+/g, '').replace(/\u2212/g, '-');
-      if (s.includes('/')) {
-        const parts = s.split('/');
-        if (parts.length === 2) {
-          const num = parseFloat(parts[0]);
-          const den = parseFloat(parts[1]);
-          if (!isNaN(num) && !isNaN(den) && den !== 0) return num / den;
-        }
+app.post('/api/analytics/revision/start', auth.requireAuth, express.json(), async (req, res) => {
+  const { topicId } = req.body;
+  if (!topicId) {
+    return res.status(400).json({ error: 'Missing topicId' });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const questions = await RevisionService.generateRevisionQuestions(userId, topicId);
+    res.json({ topicId, questions });
+  } catch (err) {
+    console.error('Error starting revision session:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/analytics/revision/submit', auth.requireAuth, express.json(), async (req, res) => {
+  const { topicId, answers } = req.body;
+  if (!topicId || !answers) {
+    return res.status(400).json({ error: 'Missing topicId or answers' });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const evalResult = RevisionService.evaluateRevision(answers);
+    
+    if (evalResult.passed) {
+      const record = await ConceptMastery.findOne({ userId, topicId });
+      if (record) {
+        record.lastRevisedAt = new Date();
+        record.revisionStage += 1;
+        record.learningLocked = false;
+        record.graceSessionUsed = false;
+        record.revisionRequired = false;
+        await record.save();
       }
-      return parseFloat(s);
-    };
-    const userVal = parseNum(n);
-    const expVal = parseNum(norm(expected));
-    if (!isNaN(userVal) && !isNaN(expVal)) {
-      correct = Math.abs(userVal - expVal) < 0.5;
-    } else {
-      correct = n === norm(expected);
     }
-  } else if (answerType === 'vector') {
-    const m = n.match(/\(?([-\d.]+),([-\d.]+)\)?/);
-    const e = norm(expected).match(/\(?([-\d.]+),([-\d.]+)\)?/);
-    correct = m && e && Math.abs(parseFloat(m[1])-parseFloat(e[1])) < 0.01 && Math.abs(parseFloat(m[2])-parseFloat(e[2])) < 0.01;
-  } else if (answerType === 'matrix') {
-    const parseMat = (s) => {
-      const cleaned = s.replace(/[\[\]]/g, '');
-      const rows = cleaned.split(';');
-      if (rows.length !== 2) return null;
-      const r0 = rows[0].split(',').map(Number);
-      const r1 = rows[1].split(',').map(Number);
-      if (r0.length !== 2 || r1.length !== 2 || r0.some(isNaN) || r1.some(isNaN)) return null;
-      return [r0, r1];
-    };
-    const um = parseMat(n);
-    const em = parseMat(norm(expected));
-    correct = um && em && um[0][0]===em[0][0] && um[0][1]===em[0][1] && um[1][0]===em[1][0] && um[1][1]===em[1][1];
-  } else {
-    const expLower = norm(expected);
-    const textNorm = (s) => s.replace(/\s+/g, '').replace(/\u2212/g, '-').toLowerCase();
-    correct = textNorm(raw) === expLower || textNorm(raw).includes(expLower) || expLower.includes(textNorm(raw));
+    
+    res.json(evalResult);
+  } catch (err) {
+    console.error('Error submitting revision session:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-
-  if (!correct && !isNaN(parseFloat(expected)) && (n === 'yes' || n === 'no')) {
-    const expNum = parseFloat(expected);
-    if ((expNum === 1 && n === 'yes') || (expNum === 0 && n === 'no')) {
-      correct = true;
-    }
-  }
-  let display = expected;
-  if (!isNaN(parseFloat(expected)) && req.body._yesno) {
-    display = expected === '1' ? 'Yes' : 'No';
-  }
-  res.json({ correct, display, message: correct ? 'Correct!' : 'Incorrect' });
 });
 
 /**
+<<<<<<< HEAD
  * NEW LAB ROUTES (Basic Arithmetic, Mensuration, Visual Math Redux)
  */
 const labRoutes = require('./labRoutes');
@@ -10223,6 +10439,8 @@ app.use('/api', labRoutes);
 =======
 >>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
 /**
+=======
+>>>>>>> 38542c4cc6c01b12770f20b68d6b714bf7e9f7c4
  * CATCH-ALL ROUTE
  * ═══════════════════════════════════════════════════════════════════════════
  * Serves the React/Vue SPA index.html for all unmatched routes
