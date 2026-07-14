@@ -40224,6 +40224,399 @@ function RevisionSessionView({ topicId, onBack, onSuccess }) {
   );
 }
 
+const getTopicName = (id) => {
+  const apps = [
+    { key: 'addition', name: 'Addition' },
+    { key: 'angles', name: 'Angles' },
+    { key: 'basicarith', name: 'Arithmetic' },
+    { key: 'banking', name: 'Banking (RD)' },
+    { key: 'bearings', name: 'Bearings' },
+    { key: 'binomial', name: 'Binomial Theorem' },
+    { key: 'bounds', name: 'Bounds' },
+    { key: 'circmeasure', name: 'Circular Measure' },
+    { key: 'circleth', name: 'Circle Theorems' },
+    { key: 'complex', name: 'Complex Numbers' },
+    { key: 'congruence', name: 'Congruence' },
+    { key: 'conics', name: 'Conic Sections' },
+    { key: 'coordgeom', name: 'Coordinate Geometry' },
+    { key: 'decimals', name: 'Decimals' },
+    { key: 'diff', name: 'Differentiation' },
+    { key: 'diffeq', name: 'Differential Equations' },
+    { key: 'dotprod', name: 'Dot Products' },
+    { key: 'fractionadd', name: 'Fractions' },
+    { key: 'funceval', name: 'Functions' },
+    { key: 'gk', name: 'General Knowledge' },
+    { key: 'gst', name: 'GST' },
+    { key: 'hcflcm', name: 'HCF & LCM' },
+    { key: 'heron', name: "Heron's Formula" },
+    { key: 'indices', name: 'Indices' },
+    { key: 'ineq', name: 'Inequalities' },
+    { key: 'integ', name: 'Integration' },
+    { key: 'invtrig', name: 'Inverse Trigonometry' },
+    { key: 'limits', name: 'Limits' },
+    { key: 'lineareq', name: 'Linear Equations' },
+    { key: 'lineq', name: 'Line Equation' },
+    { key: 'linprog', name: 'Linear Programming' },
+    { key: 'log', name: 'Logarithms' },
+    { key: 'matrix', name: 'Matrices' },
+    { key: 'mensur', name: 'Mensuration' },
+    { key: 'multiply', name: 'Multiplication' },
+    { key: 'bases', name: 'Number Bases' },
+    { key: 'percent', name: 'Percentages' },
+    { key: 'permcomb', name: 'Perm. & Comb.' },
+    { key: 'polyfactor', name: 'Polynomial Factoring' },
+    { key: 'polymul', name: 'Polynomial Multiplication' },
+    { key: 'polygons', name: 'Polygons' },
+    { key: 'primefactor', name: 'Prime Factors' },
+    { key: 'prob', name: 'Probability' },
+    { key: 'profitloss', name: 'Profit & Loss' },
+    { key: 'pythag', name: "Pythagoras' Theorem" },
+    { key: 'quadratic', name: 'Quadratic' },
+    { key: 'qformula', name: 'Quadratic Formula' },
+    { key: 'ratio', name: 'Ratio' },
+    { key: 'remfactor', name: 'Remainder Theorem' },
+    { key: 'rounding', name: 'Rounding' },
+    { key: 'section', name: 'Section Formula' },
+    { key: 'sequences', name: 'Sequences' },
+    { key: 'shares', name: 'Shares & Dividends' },
+    { key: 'sets', name: 'Sets' },
+    { key: 'similarity', name: 'Similarity' },
+    { key: 'squaring', name: 'Squaring' },
+    { key: 'simul', name: 'Simultaneous Equations' },
+    { key: 'sdt', name: 'Speed, Distance, Time' },
+    { key: 'sqrt', name: 'Square Roots' },
+    { key: 'stdform', name: 'Standard Form' },
+    { key: 'stats', name: 'Statistics' },
+    { key: 'surds', name: 'Surds' },
+    { key: 'tatsavit', name: 'Tatsavit' },
+    { key: 'transform', name: 'Transformations' },
+    { key: 'triangles', name: 'Triangles' },
+    { key: 'trig', name: 'Trigonometry' },
+    { key: 'variation', name: 'Variation' },
+    { key: 'vectors', name: 'Vectors' },
+    { key: 'vocab', name: 'Vocabulary' }
+  ];
+  const app = apps.find(a => a.key === id);
+  return app ? app.name : id.toUpperCase();
+};
+
+function ConfettiEffect() {
+  const [pieces, setPieces] = useState([]);
+
+  useEffect(() => {
+    const arr = [];
+    const colors = ['#ffd700', '#ff8c00', '#ff3e3e', '#3b82f6', '#10b981', '#a855f7', '#ec4899'];
+    for (let i = 0; i < 150; i++) {
+      arr.push({
+        id: i,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        xStart: `${Math.random() * 100}vw`,
+        yStart: `-20px`,
+        xEnd: `${Math.random() * 100}vw`,
+        yEnd: `${window.innerHeight + 50}px`,
+        delay: `${Math.random() * 3}s`,
+        duration: `${2.5 + Math.random() * 2}s`
+      });
+    }
+    setPieces(arr);
+  }, []);
+
+  return (
+    <div className="confetti-container">
+      {pieces.map(p => (
+        <div
+          key={p.id}
+          className="confetti-piece"
+          style={{
+            background: p.color,
+            left: p.xStart,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+            '--x-start': p.xStart,
+            '--y-start': p.yStart,
+            '--x-end': p.xEnd,
+            '--y-end': p.yEnd,
+            '--rot-end': `${Math.random() * 1080}deg`
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function RevisionSessionView({ topicId, onBack, onSuccess }) {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [sessionId, setSessionId] = useState('');
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [answers, setAnswers] = useState([]);
+  const [sessionFinished, setSessionFinished] = useState(false);
+  const [submitResult, setSubmitResult] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    startSession();
+  }, [topicId]);
+
+  const startSession = async () => {
+    setLoading(true);
+    setError('');
+    setSessionFinished(false);
+    setSubmitResult(null);
+    setCurrentIndex(0);
+    setUserAnswer('');
+    setAnswers([]);
+
+    try {
+      const res = await fetch(`${API}/api/analytics/revision/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : ''
+        },
+        body: JSON.stringify({ topicId, count: 15 })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to start revision');
+      }
+      const data = await res.json();
+      setSessionId(data.sessionId);
+      setQuestions(data.questions || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnswerSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!userAnswer.trim()) return;
+
+    const currentQ = questions[currentIndex];
+    
+    let isCorrect = false;
+    const cleanUser = userAnswer.trim().toLowerCase().replace(/\s+/g, '');
+    const cleanCorrect = String(currentQ.display || currentQ.answer || '').trim().toLowerCase().replace(/\s+/g, '');
+
+    const userNum = parseFloat(userAnswer);
+    const correctNum = parseFloat(currentQ.display || currentQ.answer);
+    if (!isNaN(userNum) && !isNaN(correctNum)) {
+      isCorrect = Math.abs(userNum - correctNum) < 0.5;
+    } else {
+      isCorrect = cleanUser === cleanCorrect;
+    }
+
+    const nextAnswers = [
+      ...answers,
+      {
+        questionId: currentQ.questionId,
+        userAnswer: userAnswer,
+        isCorrect
+      }
+    ];
+    setAnswers(nextAnswers);
+    setUserAnswer('');
+
+    if (currentIndex + 1 < questions.length) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      submitSessionResults(nextAnswers);
+    }
+  };
+
+  const submitSessionResults = async (finalAnswers) => {
+    setSubmitting(true);
+    setSessionFinished(true);
+    try {
+      const res = await fetch(`${API}/api/analytics/revision/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : ''
+        },
+        body: JSON.stringify({ topicId, sessionId, answers: finalAnswers })
+      });
+      if (!res.ok) {
+        throw new Error('Failed to submit revision results');
+      }
+      const data = await res.json();
+      setSubmitResult(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <p>Loading revision questions...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center' }}>
+        <h3>Error</h3>
+        <p style={{ color: 'var(--clr-wrong)' }}>{error}</p>
+        <button className="btn-primary" onClick={onBack}>Back to Dashboard</button>
+      </div>
+    );
+  }
+
+  if (sessionFinished) {
+    if (submitting) {
+      return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+          <p>Grading revision session...</p>
+        </div>
+      );
+    }
+
+    const passed = submitResult?.passed;
+    const score = submitResult?.score || 0;
+    const total = submitResult?.total || 10;
+    const percent = submitResult?.percentage || 0;
+    const isGodMode = passed && submitResult?.newRevisionStage >= 3;
+
+    if (isGodMode) {
+      return (
+        <div className="god-mode-card">
+          <ConfettiEffect />
+          <div className="god-mode-badge">God Mode Unlocked ⚡</div>
+          <h2 className="god-mode-title">Mastery Achieved! 🏆</h2>
+          <p className="god-mode-text">
+            Sensational effort! You have fully mastered <strong>{getTopicName(topicId)}</strong> and reached God Mode! Your math powers are officially legendary! 🧠✨
+          </p>
+          <div className="revision-score-percent pass" style={{ color: '#e8864a', fontSize: '2.5rem', textShadow: '0 0 10px rgba(232,134,74,0.3)', margin: '20px 0 30px' }}>
+            Score: {score} / {total} ({percent}%)
+          </div>
+          <div className="revision-card-nav">
+            <button 
+              className="btn-primary" 
+              style={{ 
+                background: 'linear-gradient(135deg, #e8864a, #ff5722)', 
+                color: '#000', 
+                border: 'none', 
+                fontWeight: '700',
+                boxShadow: '0 4px 12px rgba(232,134,74,0.3)'
+              }} 
+              onClick={onSuccess}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="revision-score-summary">
+        {passed ? (
+          <>
+            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🎉</div>
+            <h2 className="revision-score-title" style={{ color: '#5cb87a' }}>Concept Restored!</h2>
+            <p style={{ fontSize: '1.1rem', color: 'var(--clr-text-soft)', marginBottom: '24px' }}>
+              Your retrieval practice was successful. Concept health has reset to 100%.
+            </p>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>❌</div>
+            <h2 className="revision-score-title" style={{ color: '#e05a4a' }}>Revision Failed</h2>
+            <p style={{ fontSize: '1.1rem', color: 'var(--clr-text-soft)', marginBottom: '24px' }}>
+              You need at least 80% correct to unlock this concept.
+            </p>
+          </>
+        )}
+
+        <div className={`revision-score-percent ${passed ? 'pass' : 'fail'}`}>
+          {score} / {total} ({percent}%)
+        </div>
+
+        <div className="revision-card-nav">
+          {passed ? (
+            <button className="btn-primary" onClick={onSuccess}>Done</button>
+          ) : (
+            <>
+              <button className="btn-primary" onClick={startSession}>Retry Revision</button>
+              <button className="btn-secondary" onClick={onBack}>Dashboard</button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const currentQuestion = questions[currentIndex];
+  const progressPercent = Math.round((currentIndex / questions.length) * 100);
+
+  return (
+    <div className="revision-session-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
+      <div className="revision-session-header">
+        <button onClick={onBack} style={{
+          background: 'none', border: 'none', color: 'var(--clr-accent)', cursor: 'pointer',
+          fontFamily: 'var(--font-body)', fontSize: '0.95rem'
+        }}>
+          ← Exit
+        </button>
+        <div className="revision-progress-container">
+          <div className="revision-progress-bar">
+            <div className="revision-progress-fill" style={{ width: `${progressPercent}%` }}></div>
+          </div>
+        </div>
+        <div style={{ fontSize: '0.9rem', color: 'var(--clr-text-soft)', fontWeight: 600 }}>
+          {currentIndex + 1} of {questions.length}
+        </div>
+      </div>
+
+      <div className="question-card" style={{ padding: '24px', background: 'var(--clr-surface)', borderRadius: 'var(--radius)', border: '1.5px solid var(--clr-border)', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <span className="badge" style={{ textTransform: 'capitalize' }}>Revision Mode</span>
+          <span className="badge" style={{ background: 'rgba(232, 134, 74, 0.15)', color: 'var(--clr-accent)' }}>
+            Difficulty: {currentQuestion.difficulty}
+          </span>
+        </div>
+
+        <h3 style={{ fontSize: '1.3rem', margin: '0 0 20px', lineHeight: 1.4, fontFamily: 'var(--font-display)' }}>
+          {currentQuestion.prompt}
+        </h3>
+
+        <form onSubmit={handleAnswerSubmit}>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <input
+              type="text"
+              className="answer-input"
+              value={userAnswer}
+              onChange={e => setUserAnswer(e.target.value)}
+              placeholder="Your answer..."
+              autoFocus
+              style={{
+                flexGrow: 1, padding: '12px', fontSize: '1.1rem', borderRadius: 'var(--radius-sm)',
+                border: '1.5px solid var(--clr-border)', background: 'var(--clr-card)', color: 'var(--clr-text)'
+              }}
+            />
+            <button type="submit" className="btn-primary" style={{ padding: '12px 24px' }}>
+              Submit
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--clr-text-soft)' }}>
+        ⚠️ Hints are disabled in Revision Mode.
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [mode, setMode] = useState(null)
   
@@ -41696,139 +42089,21 @@ function App() {
     );
   }
 
-  const renderContent = () => {
-    if (mode === 'learning_journey') {
-      return (
-        <AuthGate>
-          <LearningJourneyHome
-            onSelectTopic={(topicId) => {
-              setActiveTopicId(topicId);
-              setMode('learning_journey_topic');
-            }}
-            onBack={() => setMode(null)}
-          />
-        </AuthGate>
-      );
-    }
-
-    if (mode === 'learning_journey_topic') {
-      return (
-        <AuthGate>
-          <LearningJourneyTopicView
-            topicId={activeTopicId}
-            onPlayConcept={(conceptKey) => {
-              setJourneyContext({ topicId: activeTopicId, conceptKey });
-              setMode(conceptKey);
-            }}
-            onStartCheckpoint={() => {
-              setMode('learning_journey_checkpoint');
-            }}
-            onBack={() => setMode('learning_journey')}
-          />
-        </AuthGate>
-      );
-    }
-
-    if (mode === 'learning_journey_checkpoint') {
-      return (
-        <AuthGate>
-          <LearningJourneyCheckpointQuizView
-            topicId={activeTopicId}
-            onBack={() => setMode('learning_journey_topic')}
-          />
-        </AuthGate>
-      );
-    }
-
-    if (mode === 'goalpractice') {
-      return (
-        <Home
-          isGoalSelection={true}
-          onBack={() => {
-            setMode(null);
-            setIsGoalMode(false);
-          }}
-          onSelect={(key) => {
-            setMode(key);
-            setIsGoalMode(true);
-          }}
-        />
-      );
-    }
-
-    if (ActiveApp) {
-      const element = (
-        <ActiveApp
-          onBack={journeyContext ? async () => {
-            const isCompleted = !!document.querySelector('.final-score');
-            if (isCompleted) {
-              try {
-                await journeyFetch('/api/learning-journey/complete-concept', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    topicId: journeyContext.topicId,
-                    conceptKey: journeyContext.conceptKey
-                  })
-                });
-              } catch (e) {
-                console.error('Failed to save concept progress:', e);
-              }
-            }
-            setJourneyContext(null);
-            setMode('learning_journey_topic');
-          } : () => {
-            if (isGoalMode) {
-              setMode('goalpractice');
-            } else {
-              setMode(null);
-            }
-          }}
-          isGoalMode={isGoalMode}
-        />
-      );
-      return journeyContext ? <AuthGate>{element}</AuthGate> : element;
-    }
-
-    return (
-      <Home
-        onSelect={(key) => {
-          if (key === 'goalpractice') {
-            setMode('goalpractice');
-          } else {
-            setMode(key);
-            setIsGoalMode(false);
-          }
-        }}
-      />
-    );
-  };
-
   return (
     <div className="app-shell">
       <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
       <div className="card">
-<<<<<<< HEAD
-        {renderContent()}
-=======
         {!mode ? (
-          <Home
-            masteryHealth={masteryHealth}
-            loadingHealth={loadingHealth}
-            onStartRevision={(topicId) => {
-              setRevisionTopic(topicId);
-              setMode('revision');
-            }}
-            onSelect={(key) => {
-              if (key === 'goalpractice') {
-                setMode('goalpractice');
-              } else {
-                handleSelectTopic(key);
-                setIsGoalMode(false);
-              }
-            }}
-          />
+          <Home onSelect={(key) => {
+            if (key === 'goalpractice') {
+              setMode('goalpractice');
+            } else {
+              setMode(key);
+              setIsGoalMode(false);
+            }
+          }} />
         ) : mode === 'goalpractice' ? (
           <Home
             isGoalSelection={true}
@@ -41882,7 +42157,7 @@ function App() {
  * @param {Object} props
  * @param {Function} props.onSelect - Callback when user selects a quiz: receives mode key (e.g., 'gk')
  */
-function Home({ onSelect, isGoalSelection = false, onBack }) {
+function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevision, isGoalSelection = false, onBack }) {
   // Special featured apps (shown in highlighted first row / hamburger menu)
   const featuredApps = [
     { key: 'randommix', name: 'Random Mix', subtitle: 'Adaptive cross-topic quiz', color: 'featured' },
@@ -42079,68 +42354,17 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
             </p>
           </div>
         </div>
-        {/* Hamburger menu — top right */}
-        <div ref={menuRef} style={{ position: 'absolute', top: '8px', right: '0' }}>
-          <button onClick={() => setMenuOpen(o => !o)} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-            display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center'
-          }} aria-label="Menu">
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(45deg) translate(4.5px, 4.5px)' : 'none' }} />
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'opacity 0.2s', opacity: menuOpen ? 0 : 1 }} />
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(-45deg) translate(4.5px, -4.5px)' : 'none' }} />
-          </button>
-          {menuOpen && <div style={{
-            position: 'absolute', top: '100%', right: 0, zIndex: 50,
-            background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
-            borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)',
-            padding: '6px 0', minWidth: '200px', overflow: 'hidden'
-          }}>
-            <button onClick={() => { setMenuOpen(false); setShowAbout(true) }} style={{
-              display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-              fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
-              borderBottom: '1px solid var(--clr-border)'
-            }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
-              onMouseLeave={e => e.target.style.background = 'none'}>
-              <strong style={{ color: 'var(--clr-accent)' }}>ℹ️ About Tenali</strong>
+        {/* Hamburger menu — top right — hidden in goal selection screen */}
+        {!isGoalSelection && (
+          <div ref={menuRef} style={{ position: 'absolute', top: '8px', right: '0' }}>
+            <button onClick={() => setMenuOpen(o => !o)} style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
+              display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center'
+            }} aria-label="Menu">
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(45deg) translate(4.5px, 4.5px)' : 'none' }} />
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'opacity 0.2s', opacity: menuOpen ? 0 : 1 }} />
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(-45deg) translate(4.5px, -4.5px)' : 'none' }} />
             </button>
-<<<<<<< HEAD
-            {/* Visual Learning Universe pinned at top of hamburger menu */}
-            {[mathLabEntry].map(app => (
-              <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
-                display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-                fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
-              }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
-                onMouseLeave={e => e.target.style.background = 'none'}>
-                <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
-              </button>
-            ))}
-            <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
-
-            <button onClick={() => { setMenuOpen(false); onSelect('goalpractice') }} style={{
-              display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-              fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
-            }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
-               onMouseLeave={e => e.target.style.background = 'none'}>
-              <strong style={{ color: 'var(--clr-accent)' }}>🎯 Goal Practice</strong>
-              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Practice with targets & limits</span>
-            </button>
-
-            {featuredApps.map(app => (
-              <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
-                display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-                fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
-              }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
-                 onMouseLeave={e => e.target.style.background = 'none'}>
-                <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
-              </button>
-            ))}
-=======
             {menuOpen && <div style={{
               position: 'absolute', top: '100%', right: 0, zIndex: 50,
               background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
@@ -42148,73 +42372,97 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
               padding: '6px 0', minWidth: '200px', overflow: 'hidden'
             }}>
               {/* Standalone Goal-Based Practice navigation item at the top of menu */}
-              <button 
-                onClick={() => { if (!hasHardLock) { setMenuOpen(false); onSelect('goalpractice'); } }} 
-                style={{
-                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-                  background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
-                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
-                  opacity: hasHardLock ? 0.45 : 1
-                }}
-                onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
-                onMouseLeave={e => e.target.style.background = 'none'}
-              >
+              <button onClick={() => { setMenuOpen(false); onSelect('goalpractice') }} style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
+                fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
+              }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+                 onMouseLeave={e => e.target.style.background = 'none'}>
                 <strong style={{ color: 'var(--clr-accent)' }}>🎯 Goal Practice</strong>
                 <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Practice with targets & limits</span>
               </button>
               <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
               
               {featuredApps.map(app => (
-                <button 
-                  key={app.key} 
-                  onClick={() => { if (!hasHardLock) { setMenuOpen(false); onSelect(app.key); } }} 
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-                    background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
-                    fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
-                    opacity: hasHardLock ? 0.45 : 1
-                  }}
-                  onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
-                  onMouseLeave={e => e.target.style.background = 'none'}
-                >
+                <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
+                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
+                }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+                   onMouseLeave={e => e.target.style.background = 'none'}>
                   <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
                   <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
                 </button>
               ))}
->>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
 
             <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
 
-<<<<<<< HEAD
-            <button onClick={() => { setMenuOpen(false); window.location.href = window.location.pathname.replace(/\/$/, '') + '/language'; }} style={{
-              display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-              fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
-            }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
-               onMouseLeave={e => e.target.style.background = 'none'}>
-              <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
-              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
-            </button>
-=======
-              <button 
-                onClick={() => { if (!hasHardLock) { setMenuOpen(false); window.location.href = '/language'; } }} 
-                style={{
-                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-                  background: 'none', border: 'none', cursor: hasHardLock ? 'not-allowed' : 'pointer', color: 'var(--clr-text)',
-                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
-                  opacity: hasHardLock ? 0.45 : 1
-                }}
-                onMouseEnter={e => { if (!hasHardLock) e.target.style.background = 'var(--clr-hover-strong)'; }}
-                onMouseLeave={e => e.target.style.background = 'none'}
-              >
+              <button onClick={() => { setMenuOpen(false); window.location.href = '/language'; }} style={{
+                display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
+                fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
+              }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+                 onMouseLeave={e => e.target.style.background = 'none'}>
                 <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
                 <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
               </button>
->>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
             </div>}
           </div>
         )}
       </div>
+
+      {/* Warning Banners */}
+      {activeWarnings.length > 0 && (
+        <div className="warning-banners-container">
+          {activeWarnings.map(h => (
+            <div key={h.topicId} className="warning-banner yellow">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⚠️</span>
+                <span>
+                  <strong>Attention: </strong>
+                  {h.warning} (<strong>{getTopicName(h.topicId)}</strong> is at {h.conceptHealth}% health)
+                </span>
+              </div>
+              <button
+                className="warning-banner-btn"
+                onClick={() => onStartRevision(h.topicId)}
+              >
+                Revise Concept
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Revision Queue (Red alerts) */}
+      {revisionQueueItems.length > 0 && (
+        <div className="revision-queue-container" style={{ marginBottom: '20px', padding: '16px', background: 'var(--clr-card)', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--clr-border)' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: 'var(--clr-accent)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🧠</span> Revision Queue ({revisionQueueItems.length} concept{revisionQueueItems.length > 1 ? 's' : ''} overdue)
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {revisionQueueItems.map(item => (
+              <div key={item.topicId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--clr-background)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--clr-border)' }}>
+                <div>
+                  <span style={{ fontWeight: '600', textTransform: 'uppercase', marginRight: '8px', color: 'var(--clr-text)' }}>{getTopicName(item.topicId)}</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--clr-text-soft)', padding: '2px 6px', background: 'var(--clr-hover)', borderRadius: '4px', marginRight: '8px' }}>{item.revisionStageLabel}</span>
+                  {item.daysOverdue > 0 && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--clr-wrong)', fontWeight: '500' }}>⚠️ Overdue by {item.daysOverdue} day{item.daysOverdue > 1 ? 's' : ''}</span>
+                  )}
+                </div>
+                <button
+                  className="warning-banner-btn"
+                  style={{ padding: '6px 12px', fontSize: '0.85rem', cursor: 'pointer' }}
+                  onClick={() => onStartRevision(item.topicId)}
+                >
+                  Start Revision
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="search-bar-row">
         <input
           id="tour-search-bar"
