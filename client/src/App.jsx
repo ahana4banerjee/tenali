@@ -40224,398 +40224,7 @@ function RevisionSessionView({ topicId, onBack, onSuccess }) {
   );
 }
 
-const getTopicName = (id) => {
-  const apps = [
-    { key: 'addition', name: 'Addition' },
-    { key: 'angles', name: 'Angles' },
-    { key: 'basicarith', name: 'Arithmetic' },
-    { key: 'banking', name: 'Banking (RD)' },
-    { key: 'bearings', name: 'Bearings' },
-    { key: 'binomial', name: 'Binomial Theorem' },
-    { key: 'bounds', name: 'Bounds' },
-    { key: 'circmeasure', name: 'Circular Measure' },
-    { key: 'circleth', name: 'Circle Theorems' },
-    { key: 'complex', name: 'Complex Numbers' },
-    { key: 'congruence', name: 'Congruence' },
-    { key: 'conics', name: 'Conic Sections' },
-    { key: 'coordgeom', name: 'Coordinate Geometry' },
-    { key: 'decimals', name: 'Decimals' },
-    { key: 'diff', name: 'Differentiation' },
-    { key: 'diffeq', name: 'Differential Equations' },
-    { key: 'dotprod', name: 'Dot Products' },
-    { key: 'fractionadd', name: 'Fractions' },
-    { key: 'funceval', name: 'Functions' },
-    { key: 'gk', name: 'General Knowledge' },
-    { key: 'gst', name: 'GST' },
-    { key: 'hcflcm', name: 'HCF & LCM' },
-    { key: 'heron', name: "Heron's Formula" },
-    { key: 'indices', name: 'Indices' },
-    { key: 'ineq', name: 'Inequalities' },
-    { key: 'integ', name: 'Integration' },
-    { key: 'invtrig', name: 'Inverse Trigonometry' },
-    { key: 'limits', name: 'Limits' },
-    { key: 'lineareq', name: 'Linear Equations' },
-    { key: 'lineq', name: 'Line Equation' },
-    { key: 'linprog', name: 'Linear Programming' },
-    { key: 'log', name: 'Logarithms' },
-    { key: 'matrix', name: 'Matrices' },
-    { key: 'mensur', name: 'Mensuration' },
-    { key: 'multiply', name: 'Multiplication' },
-    { key: 'bases', name: 'Number Bases' },
-    { key: 'percent', name: 'Percentages' },
-    { key: 'permcomb', name: 'Perm. & Comb.' },
-    { key: 'polyfactor', name: 'Polynomial Factoring' },
-    { key: 'polymul', name: 'Polynomial Multiplication' },
-    { key: 'polygons', name: 'Polygons' },
-    { key: 'primefactor', name: 'Prime Factors' },
-    { key: 'prob', name: 'Probability' },
-    { key: 'profitloss', name: 'Profit & Loss' },
-    { key: 'pythag', name: "Pythagoras' Theorem" },
-    { key: 'quadratic', name: 'Quadratic' },
-    { key: 'qformula', name: 'Quadratic Formula' },
-    { key: 'ratio', name: 'Ratio' },
-    { key: 'remfactor', name: 'Remainder Theorem' },
-    { key: 'rounding', name: 'Rounding' },
-    { key: 'section', name: 'Section Formula' },
-    { key: 'sequences', name: 'Sequences' },
-    { key: 'shares', name: 'Shares & Dividends' },
-    { key: 'sets', name: 'Sets' },
-    { key: 'similarity', name: 'Similarity' },
-    { key: 'squaring', name: 'Squaring' },
-    { key: 'simul', name: 'Simultaneous Equations' },
-    { key: 'sdt', name: 'Speed, Distance, Time' },
-    { key: 'sqrt', name: 'Square Roots' },
-    { key: 'stdform', name: 'Standard Form' },
-    { key: 'stats', name: 'Statistics' },
-    { key: 'surds', name: 'Surds' },
-    { key: 'tatsavit', name: 'Tatsavit' },
-    { key: 'transform', name: 'Transformations' },
-    { key: 'triangles', name: 'Triangles' },
-    { key: 'trig', name: 'Trigonometry' },
-    { key: 'variation', name: 'Variation' },
-    { key: 'vectors', name: 'Vectors' },
-    { key: 'vocab', name: 'Vocabulary' }
-  ];
-  const app = apps.find(a => a.key === id);
-  return app ? app.name : id.toUpperCase();
-};
-
-function ConfettiEffect() {
-  const [pieces, setPieces] = useState([]);
-
-  useEffect(() => {
-    const arr = [];
-    const colors = ['#ffd700', '#ff8c00', '#ff3e3e', '#3b82f6', '#10b981', '#a855f7', '#ec4899'];
-    for (let i = 0; i < 150; i++) {
-      arr.push({
-        id: i,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        xStart: `${Math.random() * 100}vw`,
-        yStart: `-20px`,
-        xEnd: `${Math.random() * 100}vw`,
-        yEnd: `${window.innerHeight + 50}px`,
-        delay: `${Math.random() * 3}s`,
-        duration: `${2.5 + Math.random() * 2}s`
-      });
-    }
-    setPieces(arr);
-  }, []);
-
-  return (
-    <div className="confetti-container">
-      {pieces.map(p => (
-        <div
-          key={p.id}
-          className="confetti-piece"
-          style={{
-            background: p.color,
-            left: p.xStart,
-            animationDelay: p.delay,
-            animationDuration: p.duration,
-            '--x-start': p.xStart,
-            '--y-start': p.yStart,
-            '--x-end': p.xEnd,
-            '--y-end': p.yEnd,
-            '--rot-end': `${Math.random() * 1080}deg`
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function RevisionSessionView({ topicId, onBack, onSuccess }) {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [sessionId, setSessionId] = useState('');
-  const [questions, setQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [userAnswer, setUserAnswer] = useState('');
-  const [answers, setAnswers] = useState([]);
-  const [sessionFinished, setSessionFinished] = useState(false);
-  const [submitResult, setSubmitResult] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    startSession();
-  }, [topicId]);
-
-  const startSession = async () => {
-    setLoading(true);
-    setError('');
-    setSessionFinished(false);
-    setSubmitResult(null);
-    setCurrentIndex(0);
-    setUserAnswer('');
-    setAnswers([]);
-
-    try {
-      const res = await fetch(`${API}/api/analytics/revision/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : ''
-        },
-        body: JSON.stringify({ topicId, count: 15 })
-      });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to start revision');
-      }
-      const data = await res.json();
-      setSessionId(data.sessionId);
-      setQuestions(data.questions || []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAnswerSubmit = (e) => {
-    if (e) e.preventDefault();
-    if (!userAnswer.trim()) return;
-
-    const currentQ = questions[currentIndex];
-    
-    let isCorrect = false;
-    const cleanUser = userAnswer.trim().toLowerCase().replace(/\s+/g, '');
-    const cleanCorrect = String(currentQ.display || currentQ.answer || '').trim().toLowerCase().replace(/\s+/g, '');
-
-    const userNum = parseFloat(userAnswer);
-    const correctNum = parseFloat(currentQ.display || currentQ.answer);
-    if (!isNaN(userNum) && !isNaN(correctNum)) {
-      isCorrect = Math.abs(userNum - correctNum) < 0.5;
-    } else {
-      isCorrect = cleanUser === cleanCorrect;
-    }
-
-    const nextAnswers = [
-      ...answers,
-      {
-        questionId: currentQ.questionId,
-        userAnswer: userAnswer,
-        isCorrect
-      }
-    ];
-    setAnswers(nextAnswers);
-    setUserAnswer('');
-
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      submitSessionResults(nextAnswers);
-    }
-  };
-
-  const submitSessionResults = async (finalAnswers) => {
-    setSubmitting(true);
-    setSessionFinished(true);
-    try {
-      const res = await fetch(`${API}/api/analytics/revision/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authGetToken() ? `Bearer ${authGetToken()}` : ''
-        },
-        body: JSON.stringify({ topicId, sessionId, answers: finalAnswers })
-      });
-      if (!res.ok) {
-        throw new Error('Failed to submit revision results');
-      }
-      const data = await res.json();
-      setSubmitResult(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <p>Loading revision questions...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <h3>Error</h3>
-        <p style={{ color: 'var(--clr-wrong)' }}>{error}</p>
-        <button className="btn-primary" onClick={onBack}>Back to Dashboard</button>
-      </div>
-    );
-  }
-
-  if (sessionFinished) {
-    if (submitting) {
-      return (
-        <div style={{ padding: '40px', textAlign: 'center' }}>
-          <p>Grading revision session...</p>
-        </div>
-      );
-    }
-
-    const passed = submitResult?.passed;
-    const score = submitResult?.score || 0;
-    const total = submitResult?.total || 10;
-    const percent = submitResult?.percentage || 0;
-    const isGodMode = passed && submitResult?.newRevisionStage >= 3;
-
-    if (isGodMode) {
-      return (
-        <div className="god-mode-card">
-          <ConfettiEffect />
-          <div className="god-mode-badge">God Mode Unlocked ⚡</div>
-          <h2 className="god-mode-title">Mastery Achieved! 🏆</h2>
-          <p className="god-mode-text">
-            Sensational effort! You have fully mastered <strong>{getTopicName(topicId)}</strong> and reached God Mode! Your math powers are officially legendary! 🧠✨
-          </p>
-          <div className="revision-score-percent pass" style={{ color: '#e8864a', fontSize: '2.5rem', textShadow: '0 0 10px rgba(232,134,74,0.3)', margin: '20px 0 30px' }}>
-            Score: {score} / {total} ({percent}%)
-          </div>
-          <div className="revision-card-nav">
-            <button 
-              className="btn-primary" 
-              style={{ 
-                background: 'linear-gradient(135deg, #e8864a, #ff5722)', 
-                color: '#000', 
-                border: 'none', 
-                fontWeight: '700',
-                boxShadow: '0 4px 12px rgba(232,134,74,0.3)'
-              }} 
-              onClick={onSuccess}
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="revision-score-summary">
-        {passed ? (
-          <>
-            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>🎉</div>
-            <h2 className="revision-score-title" style={{ color: '#5cb87a' }}>Concept Restored!</h2>
-            <p style={{ fontSize: '1.1rem', color: 'var(--clr-text-soft)', marginBottom: '24px' }}>
-              Your retrieval practice was successful. Concept health has reset to 100%.
-            </p>
-          </>
-        ) : (
-          <>
-            <div style={{ fontSize: '4rem', marginBottom: '16px' }}>❌</div>
-            <h2 className="revision-score-title" style={{ color: '#e05a4a' }}>Revision Failed</h2>
-            <p style={{ fontSize: '1.1rem', color: 'var(--clr-text-soft)', marginBottom: '24px' }}>
-              You need at least 80% correct to unlock this concept.
-            </p>
-          </>
-        )}
-
-        <div className={`revision-score-percent ${passed ? 'pass' : 'fail'}`}>
-          {score} / {total} ({percent}%)
-        </div>
-
-        <div className="revision-card-nav">
-          {passed ? (
-            <button className="btn-primary" onClick={onSuccess}>Done</button>
-          ) : (
-            <>
-              <button className="btn-primary" onClick={startSession}>Retry Revision</button>
-              <button className="btn-secondary" onClick={onBack}>Dashboard</button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const currentQuestion = questions[currentIndex];
-  const progressPercent = Math.round((currentIndex / questions.length) * 100);
-
-  return (
-    <div className="revision-session-container" style={{ maxWidth: '600px', margin: '0 auto', padding: '20px' }}>
-      <div className="revision-session-header">
-        <button onClick={onBack} style={{
-          background: 'none', border: 'none', color: 'var(--clr-accent)', cursor: 'pointer',
-          fontFamily: 'var(--font-body)', fontSize: '0.95rem'
-        }}>
-          ← Exit
-        </button>
-        <div className="revision-progress-container">
-          <div className="revision-progress-bar">
-            <div className="revision-progress-fill" style={{ width: `${progressPercent}%` }}></div>
-          </div>
-        </div>
-        <div style={{ fontSize: '0.9rem', color: 'var(--clr-text-soft)', fontWeight: 600 }}>
-          {currentIndex + 1} of {questions.length}
-        </div>
-      </div>
-
-      <div className="question-card" style={{ padding: '24px', background: 'var(--clr-surface)', borderRadius: 'var(--radius)', border: '1.5px solid var(--clr-border)', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <span className="badge" style={{ textTransform: 'capitalize' }}>Revision Mode</span>
-          <span className="badge" style={{ background: 'rgba(232, 134, 74, 0.15)', color: 'var(--clr-accent)' }}>
-            Difficulty: {currentQuestion.difficulty}
-          </span>
-        </div>
-
-        <h3 style={{ fontSize: '1.3rem', margin: '0 0 20px', lineHeight: 1.4, fontFamily: 'var(--font-display)' }}>
-          {currentQuestion.prompt}
-        </h3>
-
-        <form onSubmit={handleAnswerSubmit}>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <input
-              type="text"
-              className="answer-input"
-              value={userAnswer}
-              onChange={e => setUserAnswer(e.target.value)}
-              placeholder="Your answer..."
-              autoFocus
-              style={{
-                flexGrow: 1, padding: '12px', fontSize: '1.1rem', borderRadius: 'var(--radius-sm)',
-                border: '1.5px solid var(--clr-border)', background: 'var(--clr-card)', color: 'var(--clr-text)'
-              }}
-            />
-            <button type="submit" className="btn-primary" style={{ padding: '12px 24px' }}>
-              Submit
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--clr-text-soft)' }}>
-        ⚠️ Hints are disabled in Revision Mode.
-      </div>
-    </div>
-  );
-}
+let latestMasteryHealth = {};
 
 function App() {
   const [mode, setMode] = useState(null)
@@ -40631,6 +40240,7 @@ function App() {
     const token = authGetToken();
     if (!token) {
       setMasteryHealth({});
+      latestMasteryHealth = {};
       return;
     }
     setLoadingHealth(true);
@@ -40641,6 +40251,7 @@ function App() {
         if (res.status === 401) {
           authClear();
           setMasteryHealth({});
+          latestMasteryHealth = {};
           throw new Error('Unauthorized');
         }
         if (!res.ok) throw new Error('Failed to fetch mastery health');
@@ -40652,6 +40263,7 @@ function App() {
           map[item.topicId] = item;
         });
         setMasteryHealth(map);
+        latestMasteryHealth = map;
         setLoadingHealth(false);
       })
       .catch(err => {
@@ -42096,14 +41708,22 @@ function App() {
       </button>
       <div className="card">
         {!mode ? (
-          <Home onSelect={(key) => {
-            if (key === 'goalpractice') {
-              setMode('goalpractice');
-            } else {
-              setMode(key);
-              setIsGoalMode(false);
-            }
-          }} />
+          <Home
+            masteryHealth={masteryHealth}
+            loadingHealth={loadingHealth}
+            onStartRevision={(topicId) => {
+              setRevisionTopic(topicId);
+              setMode('revision');
+            }}
+            onSelect={(key) => {
+              if (key === 'goalpractice') {
+                setMode('goalpractice');
+              } else {
+                handleSelectTopic(key);
+                setIsGoalMode(false);
+              }
+            }}
+          />
         ) : mode === 'goalpractice' ? (
           <Home
             isGoalSelection={true}
@@ -42134,16 +41754,23 @@ function App() {
             isGoalMode={isGoalMode}
           />
         ) : (
-          <Home onSelect={(key) => {
-            if (key === 'goalpractice') {
-              setMode('goalpractice');
-            } else {
-              setMode(key);
-              setIsGoalMode(false);
-            }
-          }} />
+          <Home
+            masteryHealth={masteryHealth}
+            loadingHealth={loadingHealth}
+            onStartRevision={(topicId) => {
+              setRevisionTopic(topicId);
+              setMode('revision');
+            }}
+            onSelect={(key) => {
+              if (key === 'goalpractice') {
+                setMode('goalpractice');
+              } else {
+                handleSelectTopic(key);
+                setIsGoalMode(false);
+              }
+            }}
+          />
         )}
->>>>>>> 6d7620c (feat: wrap the feature functionality within auth parameter to fetch the previous progress)
       </div>
     </div>
   )
@@ -42258,6 +41885,8 @@ function Home({ onSelect, masteryHealth = {}, loadingHealth = false, onStartRevi
 
   // Hamburger menu open state
   const menuRef = useRef(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [search, setSearch] = useState('')
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -60960,6 +60589,93 @@ export function QuizLayout({ title, subtitle, onBack, children, timer, sessionGo
     }
     return child;
   });
+
+  // Look up health data for this title to display on the question card
+  const topicId = (() => {
+    const apps = [
+      { key: 'addition', name: 'Addition' },
+      { key: 'angles', name: 'Angles' },
+      { key: 'basicarith', name: 'Arithmetic' },
+      { key: 'banking', name: 'Banking (RD)' },
+      { key: 'bearings', name: 'Bearings' },
+      { key: 'binomial', name: 'Binomial Theorem' },
+      { key: 'bounds', name: 'Bounds' },
+      { key: 'circmeasure', name: 'Circular Measure' },
+      { key: 'circleth', name: 'Circle Theorems' },
+      { key: 'complex', name: 'Complex Numbers' },
+      { key: 'congruence', name: 'Congruence' },
+      { key: 'conics', name: 'Conic Sections' },
+      { key: 'coordgeom', name: 'Coordinate Geometry' },
+      { key: 'decimals', name: 'Decimals' },
+      { key: 'diff', name: 'Differentiation' },
+      { key: 'diffeq', name: 'Differential Equations' },
+      { key: 'dotprod', name: 'Dot Products' },
+      { key: 'fractionadd', name: 'Fractions' },
+      { key: 'funceval', name: 'Functions' },
+      { key: 'gk', name: 'General Knowledge' },
+      { key: 'gst', name: 'GST' },
+      { key: 'hcflcm', name: 'HCF & LCM' },
+      { key: 'heron', name: "Heron's Formula" },
+      { key: 'indices', name: 'Indices' },
+      { key: 'ineq', name: 'Inequalities' },
+      { key: 'integ', name: 'Integration' },
+      { key: 'invtrig', name: 'Inverse Trigonometry' },
+      { key: 'limits', name: 'Limits' },
+      { key: 'lineareq', name: 'Linear Equations' },
+      { key: 'lineq', name: 'Line Equation' },
+      { key: 'linprog', name: 'Linear Programming' },
+      { key: 'log', name: 'Logarithms' },
+      { key: 'matrix', name: 'Matrices' },
+      { key: 'mensur', name: 'Mensuration' },
+      { key: 'multiply', name: 'Multiplication' },
+      { key: 'bases', name: 'Number Bases' },
+      { key: 'percent', name: 'Percentages' },
+      { key: 'permcomb', name: 'Perm. & Comb.' },
+      { key: 'polyfactor', name: 'Polynomial Factoring' },
+      { key: 'polymul', name: 'Polynomial Multiplication' },
+      { key: 'polygons', name: 'Polygons' },
+      { key: 'primefactor', name: 'Prime Factors' },
+      { key: 'prob', name: 'Probability' },
+      { key: 'profitloss', name: 'Profit & Loss' },
+      { key: 'pythag', name: "Pythagoras' Theorem" },
+      { key: 'quadratic', name: 'Quadratic' },
+      { key: 'qformula', name: 'Quadratic Formula' },
+      { key: 'ratio', name: 'Ratio' },
+      { key: 'remfactor', name: 'Remainder Theorem' },
+      { key: 'rounding', name: 'Rounding' },
+      { key: 'section', name: 'Section Formula' },
+      { key: 'sequences', name: 'Sequences' },
+      { key: 'shares', name: 'Shares & Dividends' },
+      { key: 'sets', name: 'Sets' },
+      { key: 'similarity', name: 'Similarity' },
+      { key: 'squaring', name: 'Squaring' },
+      { key: 'simul', name: 'Simultaneous Equations' },
+      { key: 'sdt', name: 'Speed, Distance, Time' },
+      { key: 'sqrt', name: 'Square Roots' },
+      { key: 'stdform', name: 'Standard Form' },
+      { key: 'stats', name: 'Statistics' },
+      { key: 'surds', name: 'Surds' },
+      { key: 'tatsavit', name: 'Tatsavit' },
+      { key: 'transform', name: 'Transformations' },
+      { key: 'triangles', name: 'Triangles' },
+      { key: 'trig', name: 'Trigonometry' },
+      { key: 'variation', name: 'Variation' },
+      { key: 'vectors', name: 'Vectors' },
+      { key: 'vocab', name: 'Vocabulary' }
+    ];
+    const found = apps.find(a => a.name.toLowerCase() === title?.toLowerCase());
+    return found ? found.key : null;
+  })();
+
+  const healthData = topicId ? latestMasteryHealth[topicId] : null;
+  const healthVal = healthData ? healthData.conceptHealth : null;
+  const healthColor = (() => {
+    if (healthVal === null || healthVal === undefined) return '';
+    if (healthVal >= 80) return 'green';
+    if (healthVal >= 50) return 'yellow';
+    return 'red';
+  })();
+
   return (
     <>
       <div className="header-row">
@@ -60969,7 +60685,35 @@ export function QuizLayout({ title, subtitle, onBack, children, timer, sessionGo
           {timerDisplay}
         </div>
       </div>
-      <h1 style={{ fontSize: 'clamp(1.8rem, 3.8vw, 2.4rem)' }}>{title}</h1>
+      <h1 style={{ fontSize: 'clamp(1.8rem, 3.8vw, 2.4rem)', marginBottom: healthVal !== null ? '10px' : undefined }}>{title}</h1>
+      
+      {healthVal !== null && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '8px',
+          padding: '8px 14px',
+          marginBottom: '20px',
+          maxWidth: '400px'
+        }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--clr-text-soft)' }}>
+            Concept Health:
+          </span>
+          <div className="health-bar-container" style={{ flexGrow: 1, margin: 0, height: '8px', background: 'var(--clr-border, rgba(255,255,255,0.1))' }}>
+            <div
+              className={`health-bar health-${healthColor}`}
+              style={{ width: `${healthVal}%`, height: '100%' }}
+            ></div>
+          </div>
+          <span className={`health-percentage ${healthColor}`} style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>
+            {healthVal}%
+          </span>
+        </div>
+      )}
+
       {children}
     </>
   )

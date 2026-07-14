@@ -55,10 +55,15 @@ const Progress = mongoose.model('Progress', ProgressSchema);
 let connected = false;
 
 async function connectMongo(uri = MONGO_URI) {
-  if (connected) return;
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000, family: 4 });
-  connected = true;
-  console.log(`[auth] Mongo connected: ${uri.replace(/\/\/.*@/, '//***@')}`);
+  if (connected && mongoose.connection.readyState === 1) return;
+  try {
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 3000, family: 4 });
+    connected = true;
+    console.log(`[auth] Mongo connected: ${uri.replace(/\/\/.*@/, '//***@')}`);
+  } catch (err) {
+    connected = false;
+    throw err;
+  }
 }
 
 const SEED_USERS = [
@@ -115,7 +120,15 @@ router.post('/login', async (req, res) => {
   const password = String((req.body || {}).password || '');
   if (!username || !password) return res.status(400).json({ error: 'username and password are required' });
 
-  if (connected) {
+  if (!connected || mongoose.connection.readyState !== 1) {
+    try {
+      await connectMongo();
+    } catch (e) {
+      console.error('[auth] Retry connect failed on login:', e.message);
+    }
+  }
+
+  if (connected && mongoose.connection.readyState === 1) {
     const user = await User.findOne({ username });
     if (!user) return res.status(401).json({ error: 'invalid credentials' });
     const ok = await bcrypt.compare(password, user.passwordHash);

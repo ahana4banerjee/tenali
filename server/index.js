@@ -9017,6 +9017,128 @@ app.get('/enhanced', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'enhanced', 'index.html'));
 });
 
+
+// ─── STANDALONE CONCEPT HEALTH & REVISION ENDPOINTS ──────────────────────────
+const { calculateAdaptiveHealth, getWarningLevel } = require('./lil/decayEngine');
+const RevisionService = require('./lil/revisionService');
+const { ConceptMastery } = require('./lil/models');
+
+app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
+  if (require('mongoose').connection.readyState !== 1) {
+    return res.json([]);
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const masteries = await ConceptMastery.find({ userId, isMastered: true });
+    const enriched = masteries.map(m => {
+      const { health, stageConfig, msUntilNextDecay, estimatedCountdown } = calculateAdaptiveHealth(
+        m.lastRevisedAt,
+        m.completedAt,
+        m.topicId === 'addition' ? 'addition' : m.revisionStage
+      );
+      
+      const warning = getWarningLevel(health);
+
+      return {
+        topicId: m.topicId,
+        isMastered: m.isMastered,
+        completedAt: m.completedAt,
+        lastRevisedAt: m.lastRevisedAt,
+        conceptHealth: health,
+        healthColor: health >= 80 ? 'green' : (health >= 50 ? 'yellow' : 'red'),
+        revisionStage: m.revisionStage,
+        revisionStageLabel: m.revisionStage >= 3 && m.topicId !== 'addition' ? 'Mastery Achieved' : stageConfig.label,
+        warning: warning ? warning.message : null,
+        learningLocked: m.learningLocked,
+        graceSessionUsed: m.graceSessionUsed,
+        msUntilNextDecay,
+        estimatedCountdown
+      };
+    });
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('Error fetching concept mastery health:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.get('/api/analytics/learning-lock', auth.requireAuth, async (req, res) => {
+  const { topicId } = req.query;
+  if (!topicId) {
+    return res.status(400).json({ error: 'Missing topicId' });
+  }
+  if (require('mongoose').connection.readyState !== 1) {
+    return res.json({ topicId, learningLocked: false });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const mastery = await ConceptMastery.findOne({ userId, topicId });
+    if (!mastery) {
+      return res.json({ topicId, learningLocked: false });
+    }
+    res.json({ topicId, learningLocked: !!mastery.learningLocked });
+  } catch (err) {
+    console.error('Error checking learning lock:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/analytics/revision/start', auth.requireAuth, express.json(), async (req, res) => {
+  const { topicId } = req.body;
+  if (!topicId) {
+    return res.status(400).json({ error: 'Missing topicId' });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const questions = await RevisionService.generateRevisionQuestions(userId, topicId);
+    res.json({ topicId, questions });
+  } catch (err) {
+    console.error('Error starting revision session:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/analytics/revision/submit', auth.requireAuth, express.json(), async (req, res) => {
+  const { topicId, answers } = req.body;
+  if (!topicId || !answers) {
+    return res.status(400).json({ error: 'Missing topicId or answers' });
+  }
+  try {
+    const userId = await resolveUserObjectId(req.user.id);
+    if (!userId) {
+      return res.status(401).json({ error: 'invalid user' });
+    }
+    const evalResult = RevisionService.evaluateRevision(answers);
+    
+    if (evalResult.passed) {
+      const record = await ConceptMastery.findOne({ userId, topicId });
+      if (record) {
+        record.lastRevisedAt = new Date();
+        record.revisionStage += 1;
+        record.learningLocked = false;
+        record.graceSessionUsed = false;
+        record.revisionRequired = false;
+        await record.save();
+      }
+    }
+    
+    res.json(evalResult);
+  } catch (err) {
+    console.error('Error submitting revision session:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 /**
  * CATCH-ALL ROUTE
  * ═══════════════════════════════════════════════════════════════════════════
