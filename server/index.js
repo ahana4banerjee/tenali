@@ -8606,6 +8606,7 @@ app.get('/enhanced', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'enhanced', 'index.html'));
 });
 
+
 // ─── STANDALONE CONCEPT HEALTH & REVISION ENDPOINTS ──────────────────────────
 const { calculateAdaptiveHealth, getWarningLevel } = require('./lil/decayEngine');
 const RevisionService = require('./lil/revisionService');
@@ -8627,7 +8628,7 @@ app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
         m.lastRevisedAt,
         m.completedAt,
         m.revisionStage,
-        m.topicId
+        m.topicId === 'addition' ? 'addition' : m.revisionStage
       );
       
       const warning = getWarningLevel(health);
@@ -8642,6 +8643,7 @@ app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
         revisionStage: m.revisionStage,
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         revisionStageLabel: (m.topicId === 'addition' && m.revisionStage >= 3) ? 'Revision 3+' : (m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label),
 =======
         revisionStageLabel: m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label,
@@ -8649,6 +8651,13 @@ app.get('/api/analytics/mastery', auth.requireAuth, async (req, res) => {
         revisionStageLabel: (m.topicId === 'addition' && m.revisionStage >= 3) ? 'Revision 3+' : (m.revisionStage >= 3 ? 'Mastery Achieved' : stageConfig.label),
 >>>>>>> 6d6ad48 (feat: allow decaying of concept health below 40% and lock all other question topics once it reaches 10%)
         warning: warning ? warning.message : null,
+=======
+        revisionStageLabel: m.revisionStage >= 3 && m.topicId !== 'addition' ? 'Mastery Achieved' : stageConfig.label,
+        warning: warning ? warning.message : null,
+        learningLocked: m.learningLocked,
+        graceSessionUsed: m.graceSessionUsed,
+        msUntilNextDecay,
+>>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
         estimatedCountdown
       };
     });
@@ -8673,11 +8682,15 @@ app.get('/api/analytics/learning-lock', auth.requireAuth, async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'invalid user' });
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
     const mastery = await ConceptMastery.findOne({ userId, topicId });
     if (!mastery) {
       return res.json({ topicId, learningLocked: false });
     }
+<<<<<<< HEAD
 
     const { health } = calculateAdaptiveHealth(mastery.lastRevisedAt, mastery.completedAt, mastery.revisionStage);
 
@@ -8688,21 +8701,32 @@ app.get('/api/analytics/learning-lock', auth.requireAuth, async (req, res) => {
       revisionStage: mastery.revisionStage,
       conceptHealth: health
     });
+=======
+    res.json({ topicId, learningLocked: !!mastery.learningLocked });
+>>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
   } catch (err) {
     console.error('Error checking learning lock:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
+<<<<<<< HEAD
 app.post('/api/analytics/revision/start', auth.requireAuth, async (req, res) => {
   if (require('mongoose').connection.readyState !== 1) {
     return res.status(503).json({ error: 'Database offline' });
+=======
+app.post('/api/analytics/revision/start', auth.requireAuth, express.json(), async (req, res) => {
+  const { topicId } = req.body;
+  if (!topicId) {
+    return res.status(400).json({ error: 'Missing topicId' });
+>>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
   }
   try {
     const userId = await resolveUserObjectId(req.user.id);
     if (!userId) {
       return res.status(401).json({ error: 'invalid user' });
     }
+<<<<<<< HEAD
     const { topicId, count } = req.body;
     if (!topicId) {
       return res.status(400).json({ error: 'Missing topicId' });
@@ -8724,21 +8748,33 @@ app.post('/api/analytics/revision/start', auth.requireAuth, async (req, res) => 
       passThreshold: 80,
       hintsEnabled: false
     });
+=======
+    const questions = await RevisionService.generateRevisionQuestions(userId, topicId);
+    res.json({ topicId, questions });
+>>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
   } catch (err) {
     console.error('Error starting revision session:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
+<<<<<<< HEAD
 app.post('/api/analytics/revision/submit', auth.requireAuth, async (req, res) => {
   if (require('mongoose').connection.readyState !== 1) {
     return res.status(503).json({ error: 'Database offline' });
+=======
+app.post('/api/analytics/revision/submit', auth.requireAuth, express.json(), async (req, res) => {
+  const { topicId, answers } = req.body;
+  if (!topicId || !answers) {
+    return res.status(400).json({ error: 'Missing topicId or answers' });
+>>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
   }
   try {
     const userId = await resolveUserObjectId(req.user.id);
     if (!userId) {
       return res.status(401).json({ error: 'invalid user' });
     }
+<<<<<<< HEAD
     const { topicId, answers } = req.body;
     if (!topicId || !Array.isArray(answers)) {
       return res.status(400).json({ error: 'Missing topicId or answers array' });
@@ -8786,12 +8822,30 @@ app.post('/api/analytics/revision/submit', auth.requireAuth, async (req, res) =>
         message: 'You need 80% to restore this concept. Try again!'
       });
     }
+=======
+    const evalResult = RevisionService.evaluateRevision(answers);
+    
+    if (evalResult.passed) {
+      const record = await ConceptMastery.findOne({ userId, topicId });
+      if (record) {
+        record.lastRevisedAt = new Date();
+        record.revisionStage += 1;
+        record.learningLocked = false;
+        record.graceSessionUsed = false;
+        record.revisionRequired = false;
+        await record.save();
+      }
+    }
+    
+    res.json(evalResult);
+>>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
   } catch (err) {
     console.error('Error submitting revision session:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
+<<<<<<< HEAD
 /**
  * LINEAR ALGEBRA QUIZ - Question/Check endpoints
  * ═══════════════════════════════════════════════════════════════════════════
@@ -10166,6 +10220,8 @@ app.post('/la-mission-quiz-api/check', (req, res) => {
 const labRoutes = require('./labRoutes');
 app.use('/api', labRoutes);
 
+=======
+>>>>>>> 38542c4 (feat: Added const [search, setSearch] = useState('') inside the Home component in client/src/App.jsx)
 /**
  * CATCH-ALL ROUTE
  * ═══════════════════════════════════════════════════════════════════════════
